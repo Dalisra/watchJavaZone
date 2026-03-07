@@ -1,0 +1,193 @@
+name: starter-debug-systematically
+description: Systematic debugging with AI assistance. Reproduce, isolate, hypothesize, verify — in that order. Prevents the most common mistake of asking Claude to guess a fix before the problem is understood.
+version: 1.0.0
+
+instructions: |
+  # Debug Systematically
+
+  ## When to Use This
+
+  Use this skill when:
+  - Something is broken and you don't know why
+  - Tests are failing unexpectedly
+  - Behavior changed and you didn't intend it to
+  - Claude's previous fix didn't work (or made it worse)
+  - You're tempted to ask Claude "why is this broken?"
+
+  ## The Cardinal Rule
+
+  **Never ask Claude to fix a bug before you have a reproducible case.**
+
+  Without reproduction: Claude guesses. It will often produce a plausible-sounding
+  fix that doesn't address the actual problem. You apply it. It doesn't work.
+  Now you have two problems.
+
+  With reproduction: Claude can reason about a specific, concrete failure.
+
+  ---
+
+  ## Step 1: Reproduce (before anything else)
+
+  Get the bug to happen consistently:
+
+  ```bash
+  # A failing test is the best reproduction
+  [run your test command] --test [FailingTestName]
+
+  # If no test: a minimal command that shows the wrong behavior
+  [command that demonstrates the bug]
+  ```
+
+  If you can't reproduce it consistently: stop. You don't have a bug yet,
+  you have an observation. Gather more data until you can make it happen on demand.
+
+  A minimal reproduction = the smallest possible input/state that triggers the bug.
+  Remove variables until the failure is clean.
+
+  ---
+
+  ## Step 2: Isolate
+
+  Narrow the problem before explaining it to Claude. Ask yourself:
+
+  - What changed recently? (`git log --oneline -10`, `git diff main`)
+  - Is this a logic error, a data error, or an integration error?
+  - Does it happen in tests but not production, or vice versa?
+  - Is it deterministic or intermittent?
+
+  Then ask Claude to help isolate — not to fix:
+
+  ```
+  Here is a failing test: [paste test + error output]
+  Don't suggest a fix yet. Help me narrow down where the failure originates.
+  What are the possible locations in the code where this could go wrong?
+  ```
+
+  Read Claude's analysis. Check whether it matches the actual code.
+  If Claude references files or methods that don't exist: it's guessing.
+  Provide more specific context and ask again.
+
+  ---
+
+  ## Step 3: Hypothesize (generate 3, test 1 at a time)
+
+  Once the failure is isolated, generate hypotheses:
+
+  ```
+  Here is the isolated failure: [specific context]
+  Generate 3 hypotheses for why this could be happening.
+  Order them from most likely to least likely.
+  For each: what evidence would confirm or rule it out?
+  ```
+
+  Then test hypotheses yourself — do NOT ask Claude to implement fixes yet.
+  For each hypothesis:
+  - Add a temporary debug log or assertion
+  - Run the reproduction case
+  - Did the hypothesis predict the behavior correctly?
+
+  Stop when one hypothesis is confirmed. Discard the rest.
+
+  **The "Claude is guessing" detector:**
+  If Claude's explanation changes significantly when you push back, it was guessing.
+  Start over with more specific context rather than arguing with a guess.
+
+  ---
+
+  ## Step 4: Fix
+
+  Now — and only now — ask for a fix:
+
+  ```
+  Root cause confirmed: [your confirmed hypothesis, with evidence]
+  Here is the exact location: [file, method, line range]
+  Fix this specific issue. Do not change anything else.
+  ```
+
+  After Claude proposes a fix:
+  1. Read the diff — understand every changed line before applying
+  2. Apply the fix
+  3. Run the reproduction case — does the bug still occur?
+  4. Run the full test suite — did the fix introduce regressions?
+
+  If the fix doesn't work: you either have the wrong root cause (back to step 3)
+  or the fix is wrong (ask Claude why its fix should address the confirmed root cause).
+
+  ---
+
+  ## Step 5: Capture
+
+  After fixing: spend 3 minutes preventing the next occurrence.
+
+  **Write a regression test:**
+  ```
+  Write a test that would have caught this bug before it reached production.
+  The test should fail on the unfixed code and pass on the fixed code.
+  ```
+
+  **Update LEARNINGS.md:**
+  ```markdown
+  ### [date]: [Bug short title]
+  Root cause: [what it was]
+  Reproduction: [how to trigger it]
+  Fix: [what changed]
+  Skill updated: [if any skill gave wrong guidance]
+  ```
+
+  **Update the relevant skill** if it gave guidance that contributed to the bug,
+  or if this bug reveals a pattern that should be in a skill.
+
+  ---
+
+  ## Common Debugging Anti-Patterns
+
+  **Anti-pattern: "Just fix it"**
+  ```
+  ❌ "This test is failing, fix it"
+  ✅ "This test is failing. [paste error] Don't suggest a fix yet.
+      Help me understand what the error message is telling us."
+  ```
+
+  **Anti-pattern: Changing multiple things at once**
+  When debugging: change one thing, verify, change another.
+  Multiple simultaneous changes make it impossible to know what fixed it.
+
+  **Anti-pattern: Fixing the test instead of the code**
+  If a test fails: the code is wrong OR the test is wrong. Figure out which.
+  Never change test assertions to make them pass unless you're certain
+  the requirement changed.
+
+  **Anti-pattern: Accepting a plausible fix without understanding it**
+  If you can't explain why Claude's fix should work: you don't understand
+  the root cause yet. Ask Claude to explain the fix before applying it.
+
+  ---
+
+  ## Quick Diagnostics
+
+  **Null pointer / NPE:**
+  ```
+  Where can [variable] be null in the call chain leading to [location]?
+  Show me each place it could be assigned a null value.
+  ```
+
+  **Wrong value:**
+  ```
+  Trace the value of [variable] from its source to the point where
+  it has the wrong value. At which step does it diverge from expected?
+  ```
+
+  **Intermittent failure:**
+  ```
+  This failure is intermittent. What race conditions, timing issues,
+  or state pollution could cause [behavior] to appear only sometimes?
+  ```
+
+  **Worked before, broken now:**
+  ```
+  git log --oneline [file]   # When did this file last change?
+  git diff [commit]^..[commit] [file]   # What changed?
+  ```
+  Then: which change introduced the regression?
+
+tags: [debugging, troubleshooting, systematic, testing]

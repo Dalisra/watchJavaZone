@@ -1,0 +1,423 @@
+name: verification-patterns
+description: Testing approaches, quality assurance patterns, and verification strategies
+version: 1.0.0
+type: methodology
+
+principles:
+  - Verification is not optional (build it in from the start)
+  - Fast feedback is critical (catch issues early)
+  - Automated tests scale better than manual testing
+  - Tests document expected behavior
+  - High coverage doesn't guarantee quality
+
+testing_pyramid:
+  structure:
+    unit_tests:
+      percentage: 70%
+      characteristics:
+        - Fast (milliseconds)
+        - Isolated (no external dependencies)
+        - Focused (one thing per test)
+        - Deterministic (same input = same output)
+      when: Test individual methods, classes, functions
+
+    integration_tests:
+      percentage: 20%
+      characteristics:
+        - Moderate speed (seconds)
+        - Tests component interactions
+        - May use test doubles for external systems
+        - Verify contracts between modules
+      when: Test API endpoints, database interactions, message flows
+
+    end_to_end_tests:
+      percentage: 10%
+      characteristics:
+        - Slow (minutes)
+        - Full system behavior
+        - Real dependencies (or realistic fakes)
+        - User journey focused
+      when: Test critical user flows, acceptance criteria
+
+test_naming:
+  patterns:
+    descriptive:
+      format: "testMethodName_condition_expectedBehavior"
+      examples:
+        - "testParseGerber_invalidFormat_throwsException"
+        - "testValidate_traceWidthBelowMinimum_returnsViolation"
+        - "testConvert_gerberToIPC_preservesLayerCount"
+
+    given_when_then:
+      format: "given<condition>_when<action>_then<result>"
+      examples:
+        - "givenInvalidFile_whenParsing_thenThrowsException"
+        - "givenValidDesign_whenValidating_thenReturnsNoViolations"
+
+  rules:
+    - Use underscores for readability
+    - Be specific about conditions
+    - State expected outcome clearly
+    - Avoid "test" prefix if framework adds it
+
+test_structure:
+  arrange_act_assert:
+    pattern: |
+      @Test
+      void testMethodName_condition_expectedBehavior() {
+          // Arrange: Set up test data and conditions
+          PcbParser parser = new PcbParser();
+          InputStream input = loadTestFile("invalid.gbr");
+
+          // Act: Execute the behavior being tested
+          Exception exception = assertThrows(ParseException.class, () -> {
+              parser.parse(input);
+          });
+
+          // Assert: Verify expected outcomes
+          assertThat(exception.getMessage())
+              .contains("Invalid Gerber format");
+      }
+
+  best_practices:
+    - One assertion per test (usually)
+    - Clear separation of arrange/act/assert
+    - No logic in tests (no if/else, loops)
+    - Test behavior, not implementation
+    - Make failures obvious
+
+test_data:
+  strategies:
+    fixtures:
+      - Use realistic test data
+      - Store in resources/ directory
+      - Version control test files
+      - Document what each fixture tests
+
+    builders:
+      - Use builder pattern for complex objects
+      - Provide sensible defaults
+      - Only specify what matters for test
+      - Example: "DesignBuilder.valid().withLayer(layer).build()"
+
+    factories:
+      - Generate test data programmatically
+      - Use for parameterized tests
+      - Keep generation logic simple
+      - Document generated data characteristics
+
+  anti_patterns:
+    avoid:
+      - Magic numbers without explanation
+      - Copying production data (privacy, size)
+      - Brittle string matching (use contains, not equals)
+      - Test data that drifts from reality
+
+assertions:
+  good_assertions:
+    - Use specific matchers (not just assertEquals)
+    - AssertJ/Hamcrest for fluent assertions
+    - Check multiple properties if needed
+    - Provide helpful failure messages
+
+  examples:
+    good:
+      - "assertThat(result.getViolations()).isEmpty()"
+      - "assertThat(layer.getFeatureCount()).isEqualTo(42)"
+      - "assertThat(exception).hasMessageContaining('Invalid format')"
+
+    bad:
+      - "assertTrue(result.getViolations().size() == 0)" (not specific)
+      - "assertEquals(42, layer.getFeatureCount())" (less readable)
+
+mocking:
+  when_to_mock:
+    appropriate:
+      - External services (APIs, databases)
+      - Slow operations (file I/O, network)
+      - Non-deterministic behavior (time, random)
+      - Difficult to set up (complex state)
+
+    avoid:
+      - Internal domain objects (test the real thing)
+      - Simple data structures
+      - Value objects
+      - Pure functions
+
+  best_practices:
+    - Prefer fakes over mocks when possible
+    - Don't mock what you don't own (wrap in interface)
+    - Verify behavior, not implementation
+    - Keep mock setup simple
+
+test_coverage:
+  metrics:
+    line_coverage:
+      - Measures which lines executed
+      - Target: 80%+ for critical code
+      - Not a quality guarantee
+
+    branch_coverage:
+      - Measures which branches taken
+      - Better than line coverage
+      - Target: 70%+
+
+    mutation_coverage:
+      - Measures test effectiveness
+      - Best quality indicator
+      - Expensive to compute
+
+  what_to_cover:
+    high_priority:
+      - Business logic
+      - Data transformations
+      - Validation rules
+      - Error handling
+      - Edge cases
+
+    low_priority:
+      - Getters/setters
+      - Framework code
+      - Generated code
+      - Trivial constructors
+
+quality_gates:
+  ci_pipeline:
+    steps:
+      - Compile code
+      - Run linters (checkstyle, spotbugs)
+      - Run unit tests (fast)
+      - Run integration tests (if unit tests pass)
+      - Check coverage (fail if below threshold)
+      - Run security scans
+      - Build artifacts
+
+    failure_handling:
+      - Fail fast (don't continue if tests fail)
+      - Provide clear error messages
+      - Link to failed test reports
+      - Block merge if pipeline fails
+
+  local_verification:
+    before_commit:
+      - Run affected tests
+      - Run linters
+      - Check formatting
+
+    before_push:
+      - Run full test suite
+      - Verify no uncommitted changes
+      - Check branch is up to date
+
+manual_testing:
+  when_needed:
+    - Exploratory testing (find unexpected issues)
+    - Usability testing (UX evaluation)
+    - Visual testing (UI appearance)
+    - Performance testing (under load)
+    - Acceptance testing (business validation)
+
+  checklists:
+    feature_verification:
+      - Happy path works
+      - Error cases handled
+      - Edge cases tested
+      - Performance acceptable
+      - UI/UX intuitive
+      - Documentation updated
+
+    regression_testing:
+      - Core workflows still work
+      - No unexpected side effects
+      - Performance not degraded
+      - Existing tests still pass
+
+  documentation:
+    - Document manual test procedures
+    - Include expected results
+    - Note edge cases to check
+    - Provide test data setup instructions
+
+performance_testing:
+  types:
+    load_testing:
+      - Expected normal load
+      - Verify acceptable response times
+      - Check resource usage
+
+    stress_testing:
+      - Beyond expected load
+      - Find breaking points
+      - Verify graceful degradation
+
+    soak_testing:
+      - Sustained load over time
+      - Check for memory leaks
+      - Verify stability
+
+  metrics:
+    - Response time (p50, p95, p99)
+    - Throughput (requests/second)
+    - Resource usage (CPU, memory)
+    - Error rate
+
+verification_framework:
+  six_pillars:
+    1_format_compliance:
+      - Verify file format correctness
+      - Check specification adherence
+      - Validate data structures
+
+    2_data_integrity:
+      - Verify data transformations
+      - Check calculations
+      - Validate business rules
+
+    3_error_handling:
+      - Test error conditions
+      - Verify error messages
+      - Check recovery behavior
+
+    4_edge_cases:
+      - Test boundary conditions
+      - Verify empty/null handling
+      - Check extreme values
+
+    5_integration:
+      - Test component interactions
+      - Verify API contracts
+      - Check data flow
+
+    6_acceptance:
+      - Business requirements met
+      - User stories validated
+      - Stakeholder approval
+
+best_practices:
+  test_maintenance:
+    - Keep tests fast (or mark slow tests)
+    - Delete obsolete tests
+    - Refactor tests with code
+    - Fix flaky tests immediately
+    - Don't comment out failing tests
+
+  test_independence:
+    - Tests run in any order
+    - No shared state between tests
+    - Clean up after each test
+    - Don't depend on test execution order
+
+  debugging_tests:
+    - Use descriptive test names
+    - Add helpful assertion messages
+    - Log relevant state on failure
+    - Keep tests simple (easier to debug)
+
+anti_patterns:
+  avoid:
+    - Testing implementation details
+    - Flaky tests (non-deterministic)
+    - Slow test suites (> 10 minutes)
+    - Copy-paste test code
+    - Overly complex test setup
+    - Tests that test the framework
+    - Tests that never fail
+    - Ignoring test failures
+
+examples:
+  good_unit_test:
+    code: |
+      @Test
+      void parseGerber_invalidFormatHeader_throwsParseException() {
+          // Arrange
+          String invalidGerber = "INVALID HEADER\nG04 This is not valid*";
+          InputStream input = new ByteArrayInputStream(
+              invalidGerber.getBytes(StandardCharsets.UTF_8)
+          );
+          GerberParser parser = new GerberParser();
+
+          // Act & Assert
+          ParseException exception = assertThrows(ParseException.class, () -> {
+              parser.parse(input);
+          });
+
+          assertThat(exception.getMessage())
+              .contains("Invalid Gerber format")
+              .contains("Expected G04");
+      }
+
+  good_integration_test:
+    code: |
+      @Test
+      void validateDesign_traceWidthViolation_returnsViolation() {
+          // Arrange: Load real test file
+          Design design = loadTestDesign("trace_width_violation.gbr");
+          Constraints constraints = Constraints.builder()
+              .minTraceWidth(0.15)
+              .build();
+          Validator validator = new Validator();
+
+          // Act
+          ValidationResult result = validator.validate(design, constraints);
+
+          // Assert
+          assertThat(result.isValid()).isFalse();
+          assertThat(result.getViolations())
+              .hasSize(1)
+              .first()
+              .satisfies(violation -> {
+                  assertThat(violation.getType())
+                      .isEqualTo(ViolationType.MIN_TRACE_WIDTH);
+                  assertThat(violation.getActualValue()).isEqualTo(0.12);
+                  assertThat(violation.getLocation()).isNotNull();
+              });
+      }
+
+  good_e2e_test:
+    code: |
+      @Test
+      void completeDesignWorkflow_uploadValidateExport_succeeds() {
+          // Arrange: Upload design
+          String designId = apiClient.uploadDesign("board.zip");
+
+          // Act: Validate
+          ValidationResult validation = apiClient.validate(
+              designId,
+              Constraints.IPC_CLASS_2
+          );
+          assertThat(validation.isValid()).isTrue();
+
+          // Act: Export
+          byte[] output = apiClient.export(designId, ExportFormat.ODB_PP);
+
+          // Assert: Verify output
+          assertThat(output).isNotEmpty();
+          assertThat(isValidOdbPlusPlus(output)).isTrue();
+      }
+
+related_skills:
+  - documentation-style
+  - github-workflow
+  - verification-framework (eXOReaction methodology)
+  - pcb-app-testing (Elprint)
+  - test-ui (Elprint)
+
+usage_notes: |
+  These patterns apply to all testing activities:
+  - Unit testing (TDD or after implementation)
+  - Integration testing (API, database, message flows)
+  - End-to-end testing (user journeys)
+  - Manual testing (exploratory, acceptance)
+
+  Key principles:
+  - Write tests as you write code (not later)
+  - Keep tests fast and independent
+  - Test behavior, not implementation
+  - Use appropriate test types (pyramid)
+  - Automate what's repeatable
+
+  When to use which test type:
+  - Unit: Fast feedback on logic
+  - Integration: Verify component contracts
+  - E2E: Critical user flows
+  - Manual: Exploratory, UX, edge cases

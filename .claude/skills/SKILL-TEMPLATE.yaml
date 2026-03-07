@@ -1,0 +1,56 @@
+# SDD Skill Template (Workshop Edition)
+#
+# Instructions:
+# 1. Replace everything in [brackets]
+# 2. The 3 required sections are: "When to Use This", "Quick Start", "Related Skills"
+# 3. Keep it focused — one pattern, one skill
+# 4. Test it: ask Claude to do the thing your skill describes. Did it work?
+# 5. Start with status: draft. Promote to beta when it works. Production-ready after 2 weeks of use.
+#
+# Location guide:
+#   This file: .claude/skills/  (project-specific)
+#   Universal patterns: ~/.claude/skills/common/  (after 2+ projects need it)
+
+---
+name: [skill-name-kebab-case]
+description: [One sentence: what does this skill help Claude do in YOUR project?]
+tags: [tag1, tag2]
+status: draft
+priority: medium
+relatedSkills: []
+---
+
+# [Skill Title]
+
+## When to Use This
+
+Use this skill when:
+- [Trigger phrase — e.g., "user says 'add a validator'"]
+- [Another trigger — e.g., "working with the validation layer"]
+- [What situation makes this skill relevant?]
+
+## Quick Start
+
+[The thing you keep having to explain to Claude, written once, correctly.
+
+Be specific. Include:
+- Where files go in YOUR project
+- Your naming convention
+- The pattern Claude should follow
+- What to include / exclude
+
+Example of specific:
+"Add the new validator to src/main/java/com/example/validation/validators/
+named [Domain]Validator.java. Register it in ValidatorRegistry.java line ~45.
+Always add a corresponding test in src/test/java/.../validators/[Domain]ValidatorTest.java"
+
+Example of too vague (don't do this):
+"Write good validation code following best practices"]
+
+## Related Skills
+
+Prerequisites:
+- [skill-name] — [why it's needed first]
+
+See also:
+- [skill-name] — [what it covers]

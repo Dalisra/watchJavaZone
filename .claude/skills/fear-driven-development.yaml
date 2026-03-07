@@ -1,0 +1,409 @@
+---
+name: fear-driven-development
+description: Using productive paranoia to build robust AI-assisted development systems
+tags: [philosophy, ai-workflow, testing, quality, process]
+status: production-ready
+priority: high
+relatedSkills: [tdd-pcb, trust-but-verify, qa-testing, regression-prevention]
+---
+
+# Fear-Driven Development
+
+## When to Use This
+
+Use this mindset when:
+- **Working with AI**: Code generation, refactoring, architecture
+- **Worried about hallucinations**: "Is this AI-generated code correct?"
+- **Concerned about production bugs**: "What if this breaks in production?"
+- **Managing AI costs**: "Will this spiral out of control?"
+- **Building critical systems**: Where bugs have real consequences
+
+You're in the right place if:
+- You're using AI but don't trust it completely
+- You want 10x productivity without 10x bugs
+- You need systems that prove correctness, not hope for it
+
+## The Philosophy
+
+**Fear-Driven Development is not:**
+- Being scared of technology
+- Avoiding AI because it might make mistakes
+- Over-engineering everything
+- Analysis paralysis
+
+**Fear-Driven Development is:**
+- Acknowledging real risks (AI hallucinates, costs scale, bugs hide)
+- Building **systems** to mitigate those risks
+- Trusting the systems, not hoping for the best
+- **Productive paranoia**
+
+### The Transformation
+
+| Fear | System Built | Result |
+|------|-------------|--------|
+| AI hallucinations | Round-trip tests, property testing | 10,035 tests catch bugs in CI |
+| Production bugs | Battle testing (191 real files) | Zero AI bugs in production |
+| Shipping bad code | PR-only workflow, no direct commits | `main` always green |
+| Cost spiral | Claude MAX subscription | $100k API costs → unlimited |
+| Losing control | Directed synthesis | Human stays in command |
+| Silent failures | Extreme measurement | Fast bug detection |
+
+**Formula:** Fear → Discipline → Results
+
+## The Six Fears
+
+### Fear #1: "The AI is Lying to Me and I Can't Tell"
+
+**The Problem:**
+```java
+// Claude generates beautiful code
+public BoundBox calculateBoundBox(List<Feature> features) {
+    BoundBox result = features.get(0).getBoundBox();  // Initialize from first
+    for (Feature f : features) {
+        result = result.union(f.getBoundBox());
+    }
+    return result;
+}
+
+// Looks great! Clean, simple, logical.
+// But it's broken → What if first feature has empty bounding box (0,0,0,0)?
+// Pollutes the entire layer bounds with origin point.
+```
+
+**The System:**
+
+**Round-trip testing:**
+```java
+// If AI generates a parser, make it write the inverse
+byte[] original = Files.readAllBytes(testFile);
+PCBDesign design = parser.parse(testFile);
+byte[] written = writer.write(design);
+assertArrayEquals(original, written);  // If fails, AI lied somewhere
+```
+
+**Property-based testing:**
+```java
+@Property
+void boundingBoxMustContainAllFeatures(Layer layer) {
+    BoundBox layerBox = layer.getBoundBox();
+    for (Feature feature : layer.getFeatures()) {
+        assertTrue(layerBox.contains(feature.getBoundBox()));
+    }
+}
+// AI can hallucinate values, can't hallucinate away mathematical invariants
+```
+
+**Result:** Zero false confidence. Tests fail if AI hallucinates.
+
+### Fear #2: "This Will Break in Production"
+
+**The Problem:**
+- AI generates coordinate transformation
+- Math looks reasonable
+- Basic tests pass
+- **Two weeks later:** "Drill holes are 2x too large"
+- Edge case that only triggers with German PCB manufacturers
+
+**The System:**
+
+**Battle testing with real-world data:**
+```bash
+# Collected 191 real PCB files from the wild
+# Every change runs against ALL 191
+# If ANYTHING breaks, build fails
+
+Tests run: 10,035, Failures: 0, Errors: 0
+[INFO] BUILD SUCCESS
+```
+
+**Exhaustive edge case coverage:**
+- German manufacturers with embedded documentation
+- Ancient legacy formats
+- Malformed files from the wild
+- Every coordinate system variant
+
+**Result:** Bugs caught in CI, not production.
+
+### Fear #3: "I'm Going to Accidentally Ship Hallucinated Code"
+
+**The Problem:**
+- Working directly on `main`
+- AI suggestion looks good
+- Commit fast
+- **23 minutes later:** "Wait, that broke 47 tests"
+- But `main` was broken during those 23 minutes
+
+**The System:**
+
+**Absolute ban on direct commits:**
+```bash
+# Git pre-commit hook
+if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
+    echo "ERROR: Direct commits to main are forbidden"
+    exit 1
+fi
+```
+
+**Every change through PR:**
+1. Create branch
+2. AI generates code
+3. Tests pass locally
+4. Push to PR
+5. **CI runs all 10,035 tests**
+6. Only then: merge to main
+
+**Result:** `main` branch always green. 695 commits, zero broken builds.
+
+### Fear #4: "The Costs Will Spiral Out of Control"
+
+**The Problem:**
+- Heavy AI usage for everything
+- Multiple sessions per day
+- Long context windows
+- **Estimated cost on standard API: $100,000** for one 2.5-week project
+
+**The System:**
+
+**Claude MAX subscription:**
+- Unlimited usage
+- Makes fear-driven development economically possible
+- Without it: testing everything, verifying everything = prohibitively expensive
+
+**Strategic model selection (even with unlimited):**
+```
+Task Complexity     Model      When to Use
+──────────────────────────────────────────────
+Simple queries      Haiku      File ops, searches
+Standard coding     Sonnet     Most work (60-70%)
+Complex reasoning   Opus       Architecture, debugging
+```
+
+**Why optimize even with unlimited?**
+- Latency: Haiku responds faster
+- Discipline: Thinking about complexity makes you sharper
+- Future-proofing: If MAX goes away, habits are sustainable
+
+**Result:** $100k avoided. Sustainable workflow.
+
+### Fear #5: "I'm Losing Control to the AI"
+
+**The Problem:**
+- Give Claude high-level description
+- It returns 47 changed files
+- Understand maybe 60% of what happened
+- Merge it. Tests pass. But...
+- **"Did I just ship code I don't understand?"**
+
+**The System:**
+
+**Directed synthesis - human stays in command:**
+```
+1. I identify problem and approach
+2. AI explores codebase → finds relevant files
+3. I review findings → decide what to change
+4. AI implements to MY specification
+5. I review every change, understand every file
+6. AI runs tests → reports results
+7. I make merge decision
+```
+
+**Explicit task breakdown:**
+```
+Instead of: "Refactor the coordinate system" (black box)
+
+Do:
+Task 1: Find all files using coordinate scaling
+Task 2: Identify which use 2.5x vs 1.0x
+Task 3: Create conditional scaling logic
+Task 4: Update each converter separately
+Task 5: Add tests for both scaling modes
+```
+
+Each task small enough to fully understand.
+
+**Result:** Better understanding of codebase. AI amplifies agency, doesn't replace it.
+
+### Fear #6: "Silent Failures - Something Broke and Nobody Noticed"
+
+**The Problem:**
+- Tests are green
+- Code works
+- But **result is wrong**
+- Example: PCB bounding box says 425mm, actual board is 216mm
+- Thumbnails look fine, dimensions are just inflated 2x
+
+**The System:**
+
+**Extreme measurement culture:**
+```java
+System.out.printf("PCB boundBox: %.1fmm × %.1fmm\n",
+    width / 1_000_000.0, height / 1_000_000.0);
+System.out.printf("Expected: ~216mm × 206mm\n");
+System.out.printf("Alignment: %.1f%%\n", misalignment * 100);
+
+assertTrue(misalignment < 0.25,
+    "BoundBox should be within 25% of actual dimensions");
+```
+
+**Sanity checks everywhere:**
+```java
+if (Math.abs(x) > 3_000_000_000L) {  // 3 meters
+    logger.warn("Extreme coordinate: {}mm. Possible overflow.", x/1_000_000.0);
+}
+```
+
+**Metrics tracking:**
+- Test count (should increase)
+- Pass rate (should stay >99%)
+- Battle test coverage (should be 100%)
+
+**Result:** Bugs surface quickly through measurement.
+
+## The Results (2.5 Weeks)
+
+**Quality:**
+- 10,035 tests (99.8% pass rate)
+- Zero AI-induced production bugs
+- 191 real-world files in battle suite
+
+**Productivity:**
+- 695 commits in 2.5 weeks (278/week, ~40/day)
+- 10-20x faster on complex tasks
+- 53% documentation reduction (803 → 374 lines)
+
+**Confidence:**
+- Can ship major refactorings without anxiety
+- `main` branch always green
+- Round-trip tests catch issues before code review
+
+## Implementation Guide
+
+### Level 1: Basic Fear-Driven Development
+
+**Start here:**
+1. **No direct commits to main** - Everything through PR
+2. **Write tests before trusting AI code** - Round-trip tests for parsers
+3. **Battle test with real files** - Not just synthetic examples
+
+### Level 2: Intermediate
+
+**Add:**
+4. **Property-based testing** - Test invariants, not just examples
+5. **Extreme measurement** - Log and verify all significant values
+6. **Strategic model selection** - Right model for right task
+
+### Level 3: Advanced
+
+**Master:**
+7. **Directed synthesis** - Explicit task breakdown, human control
+8. **Continuous learning** - Every bug becomes a test/skill
+9. **Cost optimization** - MAX subscription + efficient delegation
+
+## Common Mistakes
+
+### Mistake 1: Fear Without Systems = Just Anxiety
+
+```
+❌ WRONG: "I'm scared of AI, so I'll avoid using it"
+✅ RIGHT: "I'm scared of AI hallucinations, so I built round-trip tests"
+
+❌ WRONG: "I'm worried about costs, so I'll use AI minimally"
+✅ RIGHT: "I'm worried about costs, so I got MAX subscription + optimize latency"
+```
+
+### Mistake 2: Trusting Tests You Didn't Write
+
+```
+❌ WRONG: "AI generated tests, they pass, ship it"
+✅ RIGHT: "I write tests that would catch AI mistakes"
+```
+
+### Mistake 3: Hoping Instead of Verifying
+
+```
+❌ WRONG: "The code looks good, probably works"
+✅ RIGHT: "Round-trip test passed, mathematically proven to work"
+```
+
+## Real-World Application: lib-pcb
+
+**Context:** PCB manufacturing library built in 2.5 weeks with AI assistance
+
+**Fears that drove the system:**
+1. AI hallucinations → 10,035 tests
+2. Production bugs → 191-file battle suite
+3. Bad commits → PR-only workflow
+4. Cost spiral → Claude MAX
+5. Losing control → Directed synthesis
+6. Silent failures → Extreme measurement
+
+**Results:**
+- Zero AI bugs in production
+- 695 commits, all to passing builds
+- $100k API costs avoided
+- Complete understanding of codebase
+- Fast bug detection through measurement
+
+## Quick Reference Card
+
+### When You're Scared Of...
+
+**AI Hallucinations:**
+→ Round-trip tests + property-based testing
+
+**Production Bugs:**
+→ Battle testing with real-world files
+
+**Shipping Bad Code:**
+→ PR-only workflow + CI gates
+
+**Cost Spiral:**
+→ Claude MAX subscription
+
+**Losing Control:**
+→ Directed synthesis with explicit tasks
+
+**Silent Failures:**
+→ Extreme measurement + sanity checks
+
+### The Formula
+
+```
+Fear → Identify Risk
+Risk → Design System
+System → Automate Paranoia
+Automation → Trust Process
+Trust → 10x Productivity
+```
+
+## Philosophy
+
+**The developers who are scared of AI and build systems to handle that fear are the ones who'll get the most value from it.**
+
+The confident ones trust the AI, ship code without tests, wake up to production bugs.
+
+The scared ones don't trust anything, test everything, measure everything, automate paranoia.
+
+**And they sleep well at night.**
+
+## Next Steps
+
+1. **Identify your biggest AI fear**
+2. **Design a system that makes that fear obsolete**
+3. **Write a test, add a check, create a verification script**
+4. **Turn anxiety into automation**
+
+That's fear-driven development.
+
+---
+
+**Status:** Production-ready (battle-tested over 2.5 weeks, 695 commits)
+
+**Metrics:** 10,035 tests, 0 AI bugs, 191 files battle-tested
+
+**Full Article:** See `/docs/workshop/FEAR-DRIVEN-DEVELOPMENT.md`
+
+---
+
+*Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>*
+*Last Updated: 2026-02-04*

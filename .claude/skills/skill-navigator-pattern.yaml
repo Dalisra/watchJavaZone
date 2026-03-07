@@ -1,0 +1,173 @@
+---
+name: skill-navigator-pattern
+description: How to create a skill navigator for any project. Template, structure, problem-first routing. Reference implementations in lib-pcb (85 skills) and lib-pcb-app (13 skills).
+tags: [context-engineering, meta, documentation, navigation]
+status: production-ready
+priority: high
+relatedSkills: [context-engineering-audit, claude-md-guidelines, skill-routing-decisions]
+---
+
+# Skill Navigator Pattern
+
+## When to Create One
+
+Create a skill navigator when a project has **10+ skills** and it's becoming unclear which to use for a given task.
+
+For fewer than 10 skills: a table in CLAUDE.md is sufficient. Save the navigator overhead for when the library is genuinely hard to navigate.
+
+## What It Does
+
+A skill navigator replaces "read all skill files" with "ask the navigator first." It answers:
+- "Which skill covers X?"
+- "What's the sequence for Y workflow?"
+- "What categories exist and what do they cover?"
+
+## Location
+
+Always directory format, always in the project's `.claude/skills/`:
+
+```
+.claude/skills/skill-navigator/SKILL.md
+```
+
+Directory format (not flat YAML) because the navigator is rich enough to warrant it and may have companion files later.
+
+## Structure Template
+
+```markdown
+---
+name: skill-navigator
+description: [1-sentence about this project's skill library size and focus]
+tags: [documentation, meta, navigation]
+status: production-ready
+priority: critical
+---
+
+# Skill Navigator — [Project Name]
+
+## When to Use This
+[3–5 bullets: starting work, need to find right skill, etc.]
+
+## Skills vs CLAUDE.md
+CLAUDE.md: overview, quick-start, critical gotchas
+skill-navigator: which skill to use
+Specific skills: detailed how-to, patterns, troubleshooting
+
+---
+
+## Search by Problem
+
+### "[User problem framing]"
+**Start: [skill-name]**
+[2–4 paths from there]
+
+### "[Another problem]"
+...
+
+---
+
+## Quick Search by Category
+
+### [Category Name] (N skills)
+- **skill-name** — one-line description
+...
+
+---
+
+## Common Workflows
+
+### [Workflow Name]
+1. **skill-a** — what this step accomplishes
+2. **skill-b** — what this step accomplishes
+...
+
+---
+
+## Skill File Paths
+[Complete directory listing — users copy-paste these]
+
+---
+
+## Philosophy
+[2–3 lines: CLAUDE.md < N lines, knowledge in skills]
+[Pointer to related project's skills if applicable]
+```
+
+## Key Design Principles
+
+### Problem-first, not category-first
+
+The **Search by Problem** section is the primary entry point. Users come with problems ("rendering is broken"), not categories ("show me rendering skills").
+
+**Good problem framing** (what users actually say):
+- "I need to work with BOM"
+- "Canvas rendering is broken"
+- "I'm adding a new export format"
+
+**Bad**: Category labels that mirror the taxonomy — users already see those in the category section.
+
+### Minimal friction
+
+Each problem should resolve in 1–2 steps:
+- `**Start: lib-pcb-api-index**` ← the immediate action, bolded
+- Then follow-up skills if needed
+
+Avoid making users read 5 skills before finding the right one.
+
+### Complete file paths
+
+Always include the full directory listing. Users copy-paste skill paths; relative guessing fails.
+
+### Pointer to related project
+
+If a project uses skills from a sibling project (e.g., lib-pcb-app uses lib-pcb core skills), include a clear pointer at the end:
+
+```markdown
+**For lib-pcb core skills** (validators, MIF, format parsers):
+→ See `/src/exoreaction/lib-pcb/.claude/skills/` (85 skills, start with `skill-navigator`)
+```
+
+## Reference Implementations
+
+| Navigator | Skills | Lines | Style |
+|-----------|--------|-------|-------|
+| lib-pcb | 85 skills, 15 categories | 460 | Full: tags, maturity indicators, 8 workflows, task-based search |
+| lib-pcb-app | 13 skills, 4 categories | ~170 | Simple: 4 problem entries, 4 categories, 4 workflows |
+
+**For a new navigator with 10–20 skills**: Start with the lib-pcb-app pattern. It's proportionate to the skill count.
+
+**For a mature library with 50+ skills**: Add tag-based search and maturity indicators, following the lib-pcb pattern.
+
+**lib-pcb navigator**: `/src/exoreaction/lib-pcb/.claude/skills/skill-navigator/SKILL.md`
+**lib-pcb-app navigator**: `/src/exoreaction/lib-pcb-app/.claude/skills/skill-navigator/SKILL.md`
+
+## CLAUDE.md Integration
+
+CLAUDE.md points to the navigator; it doesn't duplicate it.
+
+```markdown
+## Skills
+
+**Start here**: `.claude/skills/skill-navigator/SKILL.md` — finds the right skill for any task
+
+| Category | Skills |
+|----------|--------|
+| **[Category]** | `skill-1`, `skill-2` |
+```
+
+The CLAUDE.md table is a quick visual index (what exists). The navigator is the routing engine (what to use for what).
+
+## Updating the Navigator
+
+Update when:
+- A new skill is added → add to category list and file paths
+- A new common workflow emerges → add to workflows section
+- A problem pattern appears repeatedly → add to "Search by Problem"
+
+Treat the navigator as a living document. A stale navigator is worse than no navigator.
+
+## Related Skills
+
+- **context-engineering-audit** — determine whether a navigator is needed
+- **claude-md-guidelines** — how CLAUDE.md references the navigator
+- **skill-routing-decisions** — decide where skills live before building the navigator

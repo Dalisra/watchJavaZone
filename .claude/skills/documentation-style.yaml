@@ -1,0 +1,359 @@
+name: documentation-style
+description: Code comments, API documentation, and technical writing standards
+version: 1.0.0
+type: style-guide
+
+principles:
+  - Document the "why" not just the "what"
+  - Code should be self-documenting; comments explain non-obvious decisions
+  - Keep documentation close to code (avoid separate wikis that drift)
+  - Examples are better than lengthy explanations
+  - Update docs when you update code (not later)
+
+code_comments:
+  when_to_comment:
+    required:
+      - Complex algorithms or business logic
+      - Non-obvious performance optimizations
+      - Workarounds for bugs or limitations
+      - Security-sensitive code
+      - Public APIs and interfaces
+
+    avoid:
+      - Obvious code ("i++; // increment i")
+      - Redundant descriptions of method names
+      - Commented-out code (use version control)
+      - TODO without owner/date/ticket
+
+  comment_style:
+    java:
+      javadoc:
+        format: |
+          /**
+           * Brief description (one sentence, no period).
+           *
+           * Longer description with details, examples, edge cases.
+           * Use multiple paragraphs if needed.
+           *
+           * @param paramName description of parameter
+           * @param anotherParam description
+           * @return description of return value
+           * @throws ExceptionType when and why thrown
+           * @since version when added
+           * @deprecated use alternativeMethod() instead (since version)
+           */
+
+        best_practices:
+          - First sentence is summary (shows in IDE tooltips)
+          - Include @param for all parameters
+          - Include @return unless void
+          - Document exceptions that callers should handle
+          - Use @code{} for inline code examples
+          - Link to related classes with @link{}
+
+      inline_comments:
+        - Use // for single-line comments
+        - Place above the code it describes, not at end of line
+        - Explain "why" not "what"
+        - Example: "// Use TreeMap to maintain insertion order for diff stability"
+
+    yaml:
+      - Use # for comments
+      - Document configuration options and their effects
+      - Include examples for non-obvious values
+
+    markdown:
+      - Use <!-- HTML comments --> sparingly
+      - Prefer visible callout sections over hidden comments
+
+api_documentation:
+  public_api:
+    required_elements:
+      - Purpose and use case
+      - Parameters with types and constraints
+      - Return value with type
+      - Exceptions/errors that can occur
+      - Example usage (ideally runnable)
+      - Thread-safety guarantees (if applicable)
+      - Performance characteristics (if non-obvious)
+
+    example:
+      format: |
+        /**
+         * Parses Gerber X2 drill files into internal layer representation.
+         *
+         * Supports Gerber X2 format with embedded attributes. For legacy
+         * Gerber RS-274X format, use parseGerberRS274X() instead.
+         *
+         * @param inputStream Gerber file content (UTF-8 or ISO-8859-1)
+         * @param options parsing options (null for defaults)
+         * @return parsed layer with all features and attributes
+         * @throws ParseException if file format is invalid
+         * @throws IOException if stream cannot be read
+         *
+         * @example
+         * ```java
+         * try (InputStream is = new FileInputStream("board.gbr")) {
+         *     Layer layer = parser.parseGerberX2(is, ParserOptions.strict());
+         *     System.out.println("Found " + layer.getFeatureCount() + " features");
+         * }
+         * ```
+         */
+
+  internal_api:
+    - Can be less formal than public API
+    - Still document non-obvious behavior
+    - Focus on usage examples for teammates
+    - Explain assumptions and invariants
+
+  rest_api:
+    required_elements:
+      - Endpoint URL with parameters
+      - HTTP method (GET, POST, PUT, DELETE)
+      - Request body schema (with example JSON)
+      - Response schema (with example JSON)
+      - Status codes and error responses
+      - Authentication requirements
+      - Rate limits (if applicable)
+
+    example:
+      format: |
+        ## POST /api/pcb/validate
+
+        Validates a PCB design against manufacturing constraints.
+
+        **Request:**
+        ```json
+        {
+          "designId": "uuid",
+          "constraints": {
+            "minTraceWidth": 0.15,
+            "minClearance": 0.15
+          }
+        }
+        ```
+
+        **Response (200 OK):**
+        ```json
+        {
+          "valid": true,
+          "violations": [],
+          "warnings": ["Trace width 0.16mm near minimum"]
+        }
+        ```
+
+        **Response (400 Bad Request):**
+        ```json
+        {
+          "error": "Invalid constraint values",
+          "details": ["minTraceWidth must be > 0"]
+        }
+        ```
+
+        **Authentication:** Requires Bearer token
+
+readme_structure:
+  essential_sections:
+    - Title and one-sentence description
+    - Quick start (< 5 minutes to first result)
+    - Installation/setup
+    - Basic usage examples
+    - Links to detailed docs
+
+  optional_sections:
+    - Features (if not obvious from usage)
+    - Architecture overview (for complex projects)
+    - Configuration options
+    - Troubleshooting
+    - Contributing guidelines
+    - License
+
+  above_the_fold:
+    - Keep first screen minimal
+    - Badges (build status, coverage, version)
+    - One-paragraph description
+    - Quick start code snippet
+    - Link to full docs
+
+architecture_docs:
+  adr_format:
+    title: "ADR-NNN: [Short title]"
+    sections:
+      - Status (proposed, accepted, deprecated, superseded)
+      - Context (what's the issue we're addressing?)
+      - Decision (what we're doing about it)
+      - Consequences (what becomes easier/harder)
+      - Alternatives considered (what we didn't choose and why)
+
+  system_overview:
+    include:
+      - High-level architecture diagram
+      - Key components and responsibilities
+      - Data flow (how information moves)
+      - Integration points (external systems)
+      - Deployment model
+      - Non-functional requirements addressed
+
+  component_docs:
+    include:
+      - Purpose and responsibilities
+      - Public interfaces (APIs, events, etc.)
+      - Dependencies (what it needs)
+      - Clients (what depends on it)
+      - Key design decisions
+      - Known limitations
+
+diagrams:
+  when_to_use:
+    - System architecture (boxes and arrows)
+    - Data flow (sequence diagrams)
+    - State machines (state transitions)
+    - Entity relationships (database schema)
+    - Class hierarchies (inheritance trees)
+
+  tools:
+    preferred:
+      - Mermaid (text-based, version-controllable)
+      - PlantUML (text-based, version-controllable)
+      - Diagrams.net (formerly draw.io)
+
+    format:
+      - Keep diagrams simple (< 10 boxes)
+      - Use consistent notation
+      - Label all arrows and connections
+      - Include legend if custom notation
+      - Provide both source and rendered image
+
+changelog:
+  format:
+    - Keep a CHANGELOG.md file
+    - Use semantic versioning (major.minor.patch)
+    - Group changes by type (Added, Changed, Deprecated, Removed, Fixed, Security)
+    - Include date and version for each release
+    - Link to relevant issues/PRs
+
+  example:
+    format: |
+      # Changelog
+
+      ## [Unreleased]
+      ### Added
+      - New Gerber X3 format support (#123)
+
+      ### Fixed
+      - Drill coordinate parsing for metric units (#124)
+
+      ## [1.2.0] - 2026-01-15
+      ### Added
+      - Auto-fix for minimum clearance violations
+      - Support for IPC-2581 format
+
+      ### Changed
+      - Improved validation performance by 40%
+
+      [Unreleased]: https://github.com/org/repo/compare/v1.2.0...HEAD
+      [1.2.0]: https://github.com/org/repo/releases/tag/v1.2.0
+
+anti_patterns:
+  avoid:
+    - Documentation that duplicates code (stays out of sync)
+    - Separate wiki that drifts from reality
+    - "TODO: document this later" (never happens)
+    - Commented-out code as "documentation"
+    - Generic parameter names (param1, param2)
+    - Missing examples for complex APIs
+    - Outdated version numbers in examples
+    - Links that break when code moves
+
+best_practices:
+  - Write docs as you write code (not after)
+  - Review docs in code review (not just code)
+  - Test code examples (make them runnable)
+  - Use linters for doc comments (checkstyle, etc.)
+  - Keep examples minimal (show one thing well)
+  - Update docs when behavior changes
+  - Delete obsolete docs (don't leave zombie docs)
+
+examples:
+  good_comment:
+    code: |
+      // Use LinkedHashMap to preserve insertion order for stable diff output.
+      // TreeMap would work but sorts by key, changing output unexpectedly.
+      private final Map<String, Layer> layers = new LinkedHashMap<>();
+
+  bad_comment:
+    code: |
+      // This is a map that stores layers
+      private final Map<String, Layer> layers = new LinkedHashMap<>();
+
+  good_javadoc:
+    code: |
+      /**
+       * Validates PCB design against manufacturing constraints.
+       *
+       * Checks trace widths, clearances, hole sizes, and other DRC rules.
+       * Returns violations that must be fixed before manufacturing.
+       *
+       * @param design PCB design to validate (must not be null)
+       * @param constraints manufacturing constraints (null uses defaults)
+       * @return validation result with violations list (never null)
+       * @throws IllegalArgumentException if design is null
+       *
+       * @example
+       * ```java
+       * ValidationResult result = validator.validate(design, constraints);
+       * if (!result.isValid()) {
+       *     result.getViolations().forEach(System.out::println);
+       * }
+       * ```
+       */
+
+  good_readme:
+    structure: |
+      # lib-pcb
+
+      Java library for parsing, validating, and converting PCB manufacturing files.
+
+      ```java
+      PcbParser parser = new PcbParser();
+      Design design = parser.parse("gerber/board.zip");
+      ValidationResult result = design.validate(Constraints.IPC_CLASS_2);
+      ```
+
+      [Full documentation](docs/) | [API Reference](docs/api/) | [Examples](examples/)
+
+      ## Quick Start
+
+      Add dependency:
+      ```xml
+      <dependency>
+          <groupId>com.exoreaction</groupId>
+          <artifactId>lib-pcb</artifactId>
+          <version>1.2.0</version>
+      </dependency>
+      ```
+
+      Parse Gerber files:
+      ```java
+      // Example code here
+      ```
+
+related_skills:
+  - writing-patterns
+  - tone-of-voice
+  - github-workflow
+  - lib-pcb-api-index (Elprint)
+
+usage_notes: |
+  Apply these standards to:
+  - Java code (JavaDoc for public APIs)
+  - README files (project and component level)
+  - Architecture docs (ADRs, system overview)
+  - API documentation (REST, library APIs)
+  - Code comments (explain non-obvious decisions)
+
+  Key principle: Documentation is code. Treat it with the same care:
+  - Review it in PRs
+  - Test examples
+  - Keep it up to date
+  - Delete when obsolete

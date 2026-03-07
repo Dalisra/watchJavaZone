@@ -1,0 +1,102 @@
+---
+name: context-engineering-audit
+description: Assess a project's AI context setup and plan improvements. Covers CLAUDE.md health, skill location correctness, and navigator presence.
+tags: [context-engineering, meta, audit, documentation]
+status: production-ready
+priority: high
+relatedSkills: [claude-md-guidelines, skill-routing-decisions, skill-navigator-pattern]
+---
+
+# Context Engineering Audit
+
+## When to Use This
+
+- Starting significant work on a project you haven't touched recently
+- CLAUDE.md is getting long and you're not sure what to cut
+- Skills are scattered and hard to find
+- Onboarding a new project that has no `.claude/` structure
+- After major feature work, to restore context hygiene
+
+## Quick Assessment (5 minutes)
+
+```bash
+# 1. CLAUDE.md size
+wc -l CLAUDE.md
+
+# 2. Skills in wrong location (should be 0 for project-specific skills)
+ls ~/.claude/skills/ | grep -i "$(basename $(pwd))"
+
+# 3. Navigator present?
+ls .claude/skills/skill-navigator/ 2>/dev/null && echo "HAS NAVIGATOR" || echo "NO NAVIGATOR"
+
+# 4. Total project skills
+ls .claude/skills/ | wc -l
+```
+
+## Health Indicators
+
+### CLAUDE.md Size
+
+| Lines | Status | Action |
+|-------|--------|--------|
+| < 200 | ✅ Good | No action needed |
+| 200–400 | ⚠️ Caution | Review for extractable content |
+| > 400 | ❌ Problem | Trim aggressively |
+| > 600 | 🚨 Critical | Major surgery needed |
+
+### Skill Location
+
+| Situation | Status | Action |
+|-----------|--------|--------|
+| Project skills in `.claude/skills/` | ✅ Correct | — |
+| Project skills in `~/.claude/skills/` | ❌ Wrong | Move to project |
+| Common patterns in 2+ project skills | ⚠️ Duplication | Promote to `common/` |
+
+### Navigator
+
+| Situation | Status | Action |
+|-----------|--------|--------|
+| 10+ skills, has `skill-navigator` | ✅ Good | — |
+| 10+ skills, no navigator | ⚠️ Gap | Create navigator |
+| < 10 skills | ✅ Optional | Table in CLAUDE.md is enough |
+
+## What Makes CLAUDE.md Bloated
+
+Common offenders to extract:
+
+- **Full REST API tables** (10+ endpoints) → OpenAPI spec, README, or `app-api-reference` skill
+- **Script usage details** (flags, examples, "when to use") → `scripts/README.md`
+- **Detailed code examples** → relevant skill
+- **Session learnings** ("what we found on Feb 1") → skills or archive
+- **Project status sections** ("Recently Completed ✅") → CHANGELOG.md
+- **Validation system quick reference** → validation skills
+- **Documentation cross-reference tables** (50+ lines) → `docs/README.md`
+- **MIF/data model hierarchies** → format skills
+
+## Remediation Order
+
+When issues are found, fix in this order — each step depends on the previous:
+
+1. **Route skills** — move misplaced skills to correct location (see `skill-routing-decisions`)
+2. **Trim CLAUDE.md** — extract content to skills or docs (see `claude-md-guidelines`)
+3. **Create skill navigator** — if 10+ project skills now in place (see `skill-navigator-pattern`)
+4. **Update `~/.claude/claude.md`** — update project entry, skill count, key hub skills
+
+## Real Example: lib-pcb-app (Feb 2026)
+
+| Check | Before | After |
+|-------|--------|-------|
+| CLAUDE.md lines | 623 | 129 |
+| Skills in global `~/.claude/skills/` | 18 PCB skills | 0 |
+| Skill navigator | Missing | Created |
+| Skills in project `.claude/skills/` | 12 | 13 (incl. navigator) |
+
+**What was removed from CLAUDE.md**: Full REST API table (25 endpoints), automation scripts detail (80+ lines), MIF data hierarchy, validation system reference, session learnings tables, project status section, documentation cross-references section.
+
+**What was kept**: Architecture diagram, tech stack, skills table with navigator pointer, compact project structure, quick-start commands, scripts table (pointers only), critical gotchas, job state machine, coding conventions, docs navigation links.
+
+## Related Skills
+
+- **claude-md-guidelines** — exact rules for what stays in / comes out of CLAUDE.md
+- **skill-routing-decisions** — decide where each skill belongs before trimming
+- **skill-navigator-pattern** — how to create the navigator that CLAUDE.md points to

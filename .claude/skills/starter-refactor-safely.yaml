@@ -1,0 +1,103 @@
+name: starter-refactor-safely
+description: Refactor code with AI assistance without breaking existing behavior. Establish test safety net first, then refactor, then verify nothing changed.
+version: 1.0.0
+
+instructions: |
+  # Refactor Safely
+
+  ## When to Use This
+
+  Use this skill when:
+  - Refactoring a method, class, or module
+  - Extracting logic into a new abstraction
+  - Renaming, reorganizing, or restructuring code
+  - Reducing duplication across the codebase
+  - Any change where behavior must stay identical
+
+  ## The Safety Net First Rule
+
+  **Never start a refactoring without a safety net.**
+
+  A safety net = tests that verify current behavior pass before AND after.
+
+  If tests don't exist for the code you're about to refactor:
+  1. Write characterization tests first (capture current behavior, even if it seems wrong)
+  2. THEN refactor
+  3. THEN clean up tests if needed
+
+  ## The Refactoring Sequence
+
+  ### Step 1: Verify the Starting State
+  ```
+  [run your test command]
+  ```
+  Tests must be GREEN before any change. Red tests = fix first, refactor later.
+
+  ### Step 2: Define the Scope
+  Tell Claude exactly:
+  - What you're refactoring (method/class/module name)
+  - What behavior must be preserved (the contract)
+  - What is explicitly allowed to change (internal implementation)
+  - What is NOT allowed to change (public API, return types, side effects)
+
+  Example prompt:
+  > "Refactor the calculatePrice() method to extract the discount logic into a separate method.
+  > The public signature must not change. All existing tests must still pass."
+
+  ### Step 3: One Refactoring at a Time
+  Don't combine multiple refactorings in one step.
+  - Extract method → verify → rename → verify → move class → verify
+  - Each step should leave tests green
+
+  ### Step 4: Verify After Each Step
+  ```
+  [run your test command]
+  ```
+  If tests go red: STOP. Revert the last step. Understand why before continuing.
+
+  ### Step 5: Review the Diff
+  ```
+  git diff
+  ```
+  Read every changed line. Ask:
+  - Does any public API signature change?
+  - Are there new imports that look suspicious?
+  - Did Claude add logic that wasn't there before?
+
+  ### Step 6: Commit
+  Each completed refactoring = one commit.
+  ```
+  refactor: extract discount calculation from calculatePrice()
+  ```
+
+  ## Common Refactoring Types
+
+  **Extract Method:**
+  "Extract lines X–Y of [method] into a private method named [name]"
+
+  **Extract Class:**
+  "Extract the [responsibility] from [class] into a new class [NewClass].
+  [OriginalClass] should delegate to [NewClass]."
+
+  **Rename:**
+  "Rename [oldName] to [newName] everywhere in the codebase.
+  Update all usages, imports, and tests."
+
+  **Remove Duplication:**
+  "This code in [ClassA] and [ClassB] is identical. Extract to [SharedClass].
+  Both should use the shared version."
+
+  ## Red Flags — Stop and Review
+
+  - Claude changes a method signature without being asked to
+  - Claude adds new behavior while "refactoring"
+  - Tests pass but Claude removed assertions ("cleaned up" tests)
+  - New dependencies appear in imports
+  - Performance changes significantly (refactoring should be neutral)
+
+  ## The Golden Rule
+
+  **Refactoring changes how code is written, not what it does.**
+  If the behavior changed: that's not a refactoring. Revert and start over.
+
+tags: [refactoring, safety, testing, workflow]

@@ -1,0 +1,1036 @@
+---
+name: change-tracking
+description: Change tracking architecture - audit trail patterns using ChangeDef/RuleDef/FinishDef models
+tags: [change-tracking, audit-trail, architecture, patterns]
+status: production-ready
+priority: high
+relatedSkills: [auto-fix-layer-specific, fix-command, battle-test-auto-fix, core-models, mif-parser]
+---
+# MIF Change Tracking & Manufacturing Specifications
+
+## When to Use This
+
+Use this skill when:
+
+- **Change tracking**: Recording auto-fix changes with ChangeDef
+- **Manufacturing rules**: Defining RuleDef constraints
+- **Surface finishes**: Specifying FinishDef (ENIG, HASL, OSP)
+- **MIF Classes 72-77**: Understanding change/rule/finish data models
+- **Audit trail**: Querying design change history
+
+You're in the right place if:
+- You're implementing auto-fix change tracking
+- You need to record design changes (ECOs)
+- You're defining manufacturing rules
+- You want to specify surface finishes
+- You're querying change history
+- You need to understand ChangeDef/RuleDef/FinishDef models
+
+## Overview
+
+MIF Classes 72-77 provide comprehensive change tracking, manufacturing rules, and surface finish specifications. This system enables:
+
+- **Change Tracking** - Audit trail for design modifications (ECOs, bug fixes, compliance updates)
+- **Manufacturing Rules** - Design constraints (trace width, annular ring, clearances)
+- **Surface Finishes** - PCB finish specifications (ENIG, HASL, OSP, etc.)
+
+## MIF Class Definitions
+
+| Class | Name | Purpose | Container |
+|-------|------|---------|-----------|
+| 72 | CTMifRuleDef | Manufacturing rule definition | Single rule |
+| 73 | CTMifFinishDef | Surface finish definition | Single finish |
+| 74 | CTMifChangeDef | Design change/ECO record | Single change |
+| 75 | CTMifRuleDefList | Rule list container | Multiple rules |
+| 76 | CTMifFinishDefList | Finish list container | Multiple finishes |
+| 77 | CTMifChangeDefList | Change history container | Multiple changes |
+
+## Change Tracking (Classes 74, 77)
+
+### ChangeDef Model
+
+Records a single design change with full audit trail.
+
+**Fields:**
+- `objectId` (int) - Unique identifier
+- `name` (String) - Change identifier (e.g., "ECO-001")
+- `description` (String) - What changed
+- `timestamp` (long) - Unix epoch milliseconds
+- `author` (String) - Who made the change
+- `reason` (String) - Why the change was made
+- `changeType` (ChangeType enum) - Type of change
+- `affectedObjectIds` (List<Integer>) - Affected objects
+
+**ChangeType Enum (17 types):**
+
+*Design Changes:*
+```java
+DESIGN_REVISION         // Design revision (e.g., Rev A → Rev B)
+ECO                     // Engineering Change Order
+CUSTOMER_REQUEST        // Customer-requested change
+```
+
+*Quality & Compliance:*
+```java
+MANUFACTURING_FIX       // Manufacturing fix based on supplier feedback
+QUALITY_IMPROVEMENT     // Quality improvement
+COMPLIANCE_FIX          // IPC/regulatory compliance fix
+COST_REDUCTION          // Cost reduction optimization
+PERFORMANCE_IMPROVEMENT // Performance improvement
+BUG_FIX                 // Bug fix
+```
+
+*Smart Decision Tracking (NEW in 0.80.7):*
+```java
+FILE_MATCHING_RECOVERY     // Smart file matching when .gbrjob mismatches
+PACKAGE_EXTRACTION         // Nested ZIP extraction
+NUMERIC_PATTERN_DETECTION  // Numeric pattern matching (-02.gbr, -20.gbr)
+EXTENSION_PATTERN_DETECTION // Manufacturer naming conventions
+CONTENT_DETECTION          // Gerber X2 / G04 comment-based detection
+LEGACY_FORMAT_CONVERSION   // RS-274D format conversion (reserved)
+```
+
+*Other:*
+```java
+DOCUMENTATION           // Documentation update
+OTHER                   // Other change type
+```
+
+**Usage Example:**
+```java
+// Create change record with current timestamp
+ChangeDef change = ChangeDef.now(
+    1001,
+    "ECO-001",
+    "Increased trace width from 50µm to 100µm on layer 2200",
+    "lib-pcb AutoFix v0.14.0",
+    "DRC violation: trace width below minimum",
+    ChangeDef.ChangeType.MANUFACTURING_FIX,
+    List.of(5001, 5002, 5003)  // Affected feature IDs
+);
+
+// Access helpers
+Instant when = change.getTimestampAsInstant();
+boolean hasObjects = change.hasAffectedObjects();
+int count = change.getAffectedObjectCount();
+```
+
+### ChangeDefList Container
+
+Stores change history with rich query capabilities.
+
+**Query Methods:**
+```java
+ChangeDefList changes = new ChangeDefList();
+changes.addChange(change1);
+changes.addChange(change2);
+
+// Query by type
+List<ChangeDef> mfgFixes = changes.getChangesByType(
+    ChangeDef.ChangeType.MANUFACTURING_FIX
+);
+
+// Query by author
+List<ChangeDef> autoFixChanges = changes.getChangesByAuthor(
+    "lib-pcb AutoFix v0.14.0"
+);
+
+// Query by affected objects
+List<ChangeDef> affecting5001 = changes.getChangesAffecting(5001);
+
+// Query by time range
+long oneHourAgo = Instant.now().minusSeconds(3600).toEpochMilli();
+long now = Instant.now().toEpochMilli();
+List<ChangeDef> recentChanges = changes.getChangesInRange(oneHourAgo, now);
+
+// Get latest/oldest
+ChangeDef latest = changes.getLatestChange();
+ChangeDef oldest = changes.getOldestChange();
+
+// Counts
+int total = changes.getChangeCount();
+```
+
+### Binary Format (Class 74)
+
+```
+[OBJECT_ID:int32]    // Object ID
+[NAME:string]        // Change identifier (e.g., "ECO-001")
+[DESCRIPTION:string] // What changed
+[TIMESTAMP:int64]    // When (Unix epoch milliseconds)
+[AUTHOR:string]      // Who made the change
+[REASON:string]      // Why the change was made
+[CHANGE_TYPE:int8]   // Type of change (enum ordinal)
+[COUNT:int32]        // Number of affected objects
+[OBJECT_IDS...]      // Affected object IDs (int32 each)
+```
+
+**List Format (Class 77):**
+```
+[COUNT:int32]        // Number of change records
+[CHANGES...]         // ChangeDef objects (each preceded by class ID 74)
+```
+
+## Manufacturing Rules (Classes 72, 75)
+
+### RuleDef Model
+
+Defines manufacturing design constraints.
+
+**Fields:**
+- `objectId` (int) - Unique identifier
+- `name` (String) - Rule name (e.g., "Min Trace Width")
+- `ruleType` (RuleType enum) - Type of rule
+- `value` (int) - Rule value in nanometers
+- `severity` (RuleSeverity enum) - Severity level
+- `description` (String) - Description
+
+**RuleType Enum (25 types):**
+
+*Trace Rules:*
+- `MIN_TRACE_WIDTH` - Minimum trace width
+- `MAX_TRACE_WIDTH` - Maximum trace width
+- `MIN_TRACE_SPACING` - Minimum trace spacing
+- `MIN_TRACE_TO_PAD_CLEARANCE` - Minimum trace to pad clearance
+
+*Via Rules:*
+- `MIN_VIA_ANNULAR_RING` - Minimum via annular ring
+- `MIN_VIA_SPACING` - Minimum via spacing
+- `MIN_VIA_TO_TRACE_SPACING` - Minimum via to trace spacing
+
+*Drill Rules:*
+- `MIN_DRILL_DIAMETER` - Minimum drill diameter
+- `MAX_DRILL_DIAMETER` - Maximum drill diameter
+- `MIN_HOLE_SPACING` - Minimum hole spacing
+- `MAX_DRILL_ASPECT_RATIO` - Maximum drill aspect ratio
+
+*Pad Rules:*
+- `MIN_PAD_DIAMETER` - Minimum pad diameter
+- `MIN_PAD_CLEARANCE` - Minimum pad clearance
+
+*Clearance Rules:*
+- `MIN_COPPER_TO_EDGE` - Minimum copper to board edge
+- `MIN_COPPER_CLEARANCE` - Minimum copper clearance
+- `MIN_SOLDER_MASK_CLEARANCE` - Minimum solder mask clearance
+
+*Solder Mask Rules:*
+- `SOLDER_MASK_EXPANSION` - Solder mask expansion
+- `MIN_SOLDER_MASK_BRIDGE` - Minimum solder mask bridge
+
+*Board Rules:*
+- `MIN_BOARD_DIMENSION` - Minimum board dimension
+- `MAX_BOARD_DIMENSION` - Maximum board dimension
+- `MIN_BOARD_THICKNESS` - Minimum board thickness
+- `MAX_BOARD_THICKNESS` - Maximum board thickness
+
+*Silkscreen Rules:*
+- `MIN_SILKSCREEN_WIDTH` - Minimum silkscreen width
+- `MIN_SILKSCREEN_TEXT_HEIGHT` - Minimum silkscreen text height
+
+*Other:*
+- `CUSTOM` - Custom rule type
+
+**RuleSeverity Enum (4 levels):**
+```java
+INFO     // Informational only
+WARNING  // May impact manufacturability
+ERROR    // Will likely cause manufacturing issues
+CRITICAL // Prevents manufacturing
+```
+
+**Usage Example:**
+```java
+// Create manufacturing rule
+RuleDef rule = new RuleDef(
+    2001,
+    "Min Trace Width",
+    RuleDef.RuleType.MIN_TRACE_WIDTH,
+    100_000,  // 100µm in nanometers
+    RuleDef.RuleSeverity.ERROR,
+    "Minimum trace width for standard manufacturing"
+);
+
+// Value conversions
+double micrometers = rule.getValueInMicrometers();  // 100.0
+double millimeters = rule.getValueInMillimeters();  // 0.1
+
+// Display name
+String display = rule.ruleType().getDisplayName();  // "Minimum Trace Width"
+```
+
+### RuleDefList Container
+
+Stores manufacturing rules with filtering.
+
+**Query Methods:**
+```java
+RuleDefList rules = new RuleDefList();
+rules.addRule(rule1);
+rules.addRule(rule2);
+
+// Query by type (returns first match)
+RuleDef traceWidth = rules.getRuleByType(RuleDef.RuleType.MIN_TRACE_WIDTH);
+
+// Query by severity
+List<RuleDef> criticalRules = rules.getCriticalRules();
+List<RuleDef> errorRules = rules.getErrorRules();
+List<RuleDef> warningRules = rules.getWarningRules();
+List<RuleDef> bySeverity = rules.getRulesBySeverity(RuleDef.RuleSeverity.ERROR);
+
+// Query by value ranges
+List<RuleDef> below100um = rules.getRulesBelowValue(100_000);
+List<RuleDef> above500um = rules.getRulesAboveValue(500_000);
+
+// Count
+int total = rules.getRuleCount();
+```
+
+### Binary Format (Class 72)
+
+```
+[OBJECT_ID:int32]    // Object ID
+[NAME:string]        // Rule name
+[RULE_TYPE:int8]     // Type of rule (enum ordinal)
+[VALUE:int32]        // Rule value in nanometers
+[SEVERITY:int8]      // Rule severity (enum ordinal)
+[DESCRIPTION:string] // Description
+```
+
+**List Format (Class 75):**
+```
+[COUNT:int32]        // Number of rules
+[RULES...]           // RuleDef objects (each preceded by class ID 72)
+```
+
+## Surface Finishes (Classes 73, 76)
+
+### FinishDef Model
+
+Defines PCB surface finish specifications.
+
+**Fields:**
+- `objectId` (int) - Unique identifier
+- `name` (String) - Finish name (e.g., "ENIG")
+- `finishType` (FinishType enum) - Type of finish
+- `thickness` (int) - Thickness in nanometers
+- `description` (String) - Additional specifications
+
+**FinishType Enum (12 types):**
+```java
+ENIG            // Electroless Nickel Immersion Gold
+ENEPIG          // + Palladium layer (better for wire bonding)
+HASL            // Hot Air Solder Leveling (leaded, NOT RoHS)
+HASL_LEAD_FREE  // RoHS compliant HASL
+OSP             // Organic Solderability Preservative
+IMMERSION_SILVER
+IMMERSION_TIN
+HARD_GOLD       // For edge connectors (high wear)
+SOFT_GOLD       // For wire bonding
+BARE_COPPER
+CARBON          // Carbon contact finish
+OTHER
+```
+
+**Finish Properties:**
+
+*Flat Surface Types (good for fine-pitch components):*
+- ENIG, ENEPIG, OSP, IMMERSION_SILVER, IMMERSION_TIN, HARD_GOLD, SOFT_GOLD
+
+*Non-Flat Surface Types:*
+- HASL, HASL_LEAD_FREE (bumpy surface)
+
+*RoHS Compliant:*
+- All except HASL (contains lead)
+
+**Usage Example:**
+```java
+// Create finish specification
+FinishDef finish = new FinishDef(
+    3001,
+    "ENIG",
+    FinishDef.FinishType.ENIG,
+    100,  // 100nm = 0.1µm gold thickness
+    "Electroless Nickel Immersion Gold: 5µm Ni + 0.1µm Au"
+);
+
+// Thickness conversion
+double micrometers = finish.getThicknessInMicrometers();  // 0.1
+boolean hasThickness = finish.hasThickness();  // true
+
+// Properties
+boolean flat = finish.finishType().isFlatSurface();  // true
+boolean rohs = finish.finishType().isRoHSCompliant();  // true
+
+// Display name
+String display = finish.finishType().getDisplayName();
+// "ENIG (Electroless Nickel Immersion Gold)"
+```
+
+### FinishDefList Container
+
+Stores finish specifications with filtering.
+
+**Query Methods:**
+```java
+FinishDefList finishes = new FinishDefList();
+finishes.addFinish(finish1);
+finishes.addFinish(finish2);
+
+// Get primary (first) finish
+FinishDef primary = finishes.getPrimaryFinish();
+
+// Query by type (returns first match)
+FinishDef enig = finishes.getFinishByType(FinishDef.FinishType.ENIG);
+
+// Query by properties
+List<FinishDef> flatFinishes = finishes.getFlatSurfaceFinishes();
+List<FinishDef> rohsFinishes = finishes.getRoHSCompliantFinishes();
+List<FinishDef> withThickness = finishes.getFinishesWithThickness();
+
+// Property checks
+boolean hasFlatFinish = finishes.hasFlatSurfaceFinish();
+boolean allRoHS = finishes.isAllRoHSCompliant();
+
+// Count
+int total = finishes.getFinishCount();
+```
+
+### Binary Format (Class 73)
+
+```
+[OBJECT_ID:int32]    // Object ID
+[NAME:string]        // Finish name
+[FINISH_TYPE:int8]   // Type of finish (enum ordinal)
+[THICKNESS:int32]    // Finish thickness in nanometers
+[DESCRIPTION:string] // Additional specifications
+```
+
+**List Format (Class 76):**
+```
+[COUNT:int32]        // Number of finishes
+[FINISHES...]        // FinishDef objects (each preceded by class ID 73)
+```
+
+## PCBDesign Integration
+
+### Builder Pattern
+
+```java
+// Create manufacturing specifications
+RuleDefList rules = new RuleDefList();
+rules.addRule(new RuleDef(
+    2001, "Min Trace Width", RuleDef.RuleType.MIN_TRACE_WIDTH,
+    100_000, RuleDef.RuleSeverity.ERROR,
+    "Minimum trace width per IPC Class 2"
+));
+rules.addRule(new RuleDef(
+    2002, "Min Annular Ring", RuleDef.RuleType.MIN_VIA_ANNULAR_RING,
+    50_000, RuleDef.RuleSeverity.ERROR,
+    "Minimum annular ring per IPC Class 2"
+));
+
+FinishDefList finishes = new FinishDefList();
+finishes.addFinish(new FinishDef(
+    3001, "ENIG", FinishDef.FinishType.ENIG, 100,
+    "5µm Ni + 0.1µm Au"
+));
+
+ChangeDefList changes = new ChangeDefList();
+changes.addChange(ChangeDef.now(
+    1001, "ECO-001", "Increased trace width",
+    "AutoFix", "DRC violation",
+    ChangeDef.ChangeType.MANUFACTURING_FIX,
+    List.of(5001, 5002)
+));
+
+// Build PCB design with all specifications
+PCBDesign design = PCBDesign.builder()
+    .objectId(1)
+    .name("ProductionBoard")
+    .mifVersion(8)
+    .manufacturingRules(rules)
+    .surfaceFinishes(finishes)
+    .changeHistory(changes)
+    .addLayer(layer1)
+    .addLayer(layer2)
+    .build();
+
+// Access specifications
+RuleDefList designRules = design.getManufacturingRules();
+FinishDefList designFinishes = design.getSurfaceFinishes();
+ChangeDefList designChanges = design.getChangeHistory();
+```
+
+## Parsing & Writing
+
+### Reading from MIF
+
+```java
+// Parse MIF file
+PCBDesign design = MifParser.parse(mifFilePath);
+
+// Access change tracking
+ChangeDefList changes = design.getChangeHistory();
+if (changes.getChangeCount() > 0) {
+    ChangeDef latest = changes.getLatestChange();
+    System.out.printf("Latest change: %s by %s%n",
+        latest.name(), latest.author());
+}
+
+// Access manufacturing rules
+RuleDefList rules = design.getManufacturingRules();
+RuleDef traceWidth = rules.getRuleByType(RuleDef.RuleType.MIN_TRACE_WIDTH);
+if (traceWidth != null) {
+    System.out.printf("Min trace width: %.1fµm (%s)%n",
+        traceWidth.getValueInMicrometers(),
+        traceWidth.severity().getDisplayName());
+}
+
+// Access surface finishes
+FinishDefList finishes = design.getSurfaceFinishes();
+FinishDef primary = finishes.getPrimaryFinish();
+if (primary != null) {
+    System.out.printf("Surface finish: %s (flat=%b, RoHS=%b)%n",
+        primary.name(),
+        primary.finishType().isFlatSurface(),
+        primary.finishType().isRoHSCompliant());
+}
+```
+
+### Writing to MIF
+
+```java
+// Write to MIF file
+Path outputPath = Paths.get("design-with-changes.mif");
+MifWriter.write(design, outputPath);
+
+// All manufacturing rules, finishes, and change history
+// are automatically serialized to MIF binary format
+```
+
+## Auto-Fix Integration
+
+### Recording Changes
+
+```java
+public class AutoFixEngine {
+
+    public void fixTraceWidth(PCBDesign design, Feature feature) {
+        // Get current change history
+        ChangeDefList changes = design.getChangeHistory();
+
+        // Perform fix
+        double oldWidth = feature.getWidth();
+        feature.setWidth(100_000);  // Fix to 100µm
+
+        // Record change
+        ChangeDef change = ChangeDef.now(
+            changes.getChangeCount() + 1,
+            String.format("AutoFix-%03d", changes.getChangeCount() + 1),
+            String.format("Increased trace width from %.1fµm to 100µm",
+                oldWidth / 1000.0),
+            "lib-pcb AutoFix v0.14.0",
+            "DRC violation: trace width below minimum 100µm",
+            ChangeDef.ChangeType.MANUFACTURING_FIX,
+            List.of(feature.getObjectId())
+        );
+
+        changes.addChange(change);
+    }
+
+    public void fixAnnularRing(PCBDesign design, PadFeature pad) {
+        ChangeDefList changes = design.getChangeHistory();
+
+        // Perform fix
+        // ... modify pad annular ring ...
+
+        // Record change
+        ChangeDef change = ChangeDef.now(
+            changes.getChangeCount() + 1,
+            String.format("AutoFix-%03d", changes.getChangeCount() + 1),
+            String.format("Increased annular ring for via at (%.1fmm, %.1fmm)",
+                pad.getLocation().x() / 1_000_000.0,
+                pad.getLocation().y() / 1_000_000.0),
+            "lib-pcb AutoFix v0.14.0",
+            "IPC Class 2 violation: annular ring below minimum 50µm",
+            ChangeDef.ChangeType.COMPLIANCE_FIX,
+            List.of(pad.getObjectId())
+        );
+
+        changes.addChange(change);
+    }
+}
+```
+
+### Querying Changes
+
+```java
+// Get all auto-fix changes
+List<ChangeDef> autoFixes = design.getChangeHistory()
+    .getChangesByAuthor("lib-pcb AutoFix v0.14.0");
+
+System.out.printf("Auto-fix made %d changes:%n", autoFixes.size());
+for (ChangeDef change : autoFixes) {
+    System.out.printf("  [%s] %s%n", change.name(), change.description());
+}
+
+// Get changes by type
+List<ChangeDef> mfgFixes = design.getChangeHistory()
+    .getChangesByType(ChangeDef.ChangeType.MANUFACTURING_FIX);
+
+List<ChangeDef> complianceFixes = design.getChangeHistory()
+    .getChangesByType(ChangeDef.ChangeType.COMPLIANCE_FIX);
+
+// Get changes affecting specific object
+int featureId = 5001;
+List<ChangeDef> affecting = design.getChangeHistory()
+    .getChangesAffecting(featureId);
+
+if (!affecting.isEmpty()) {
+    System.out.printf("Feature %d was modified by %d changes:%n",
+        featureId, affecting.size());
+    for (ChangeDef change : affecting) {
+        System.out.printf("  %s: %s%n", change.name(), change.reason());
+    }
+}
+```
+
+## Smart Decision Tracking (NEW in 0.80.7)
+
+### Overview
+
+Smart decision tracking records automatic "smart" decisions made during package scanning and conversion. This provides manufacturing traceability for heuristics and recovery strategies.
+
+**5 Smart Decisions Tracked:**
+1. **Smart file matching** - When .gbrjob filenames don't match actual files
+2. **Nested ZIP extraction** - Automatic extraction to find Gerber files
+3. **Content-based detection** - Gerber X2 / G04 comment layer detection
+4. **Numeric pattern matching** - Layer detection from patterns (-02.gbr)
+5. **Extension pattern detection** - Manufacturer naming conventions
+
+### Architecture Pattern
+
+**Collector → Pass Through → Convert:**
+
+```
+PackageReader.scan()
+    ↓
+PackageScanDecisions (collector)
+    ↓
+PackageContents (pass through)
+    ↓
+GerberToMifConverter
+    ↓
+ChangeDef entries in ChangeDefList
+```
+
+**Key Principle:** Collect decisions during scanning, convert to ChangeDef during MIF generation.
+
+### PackageScanDecisions Collector
+
+Lightweight metadata collector for scan-time decisions.
+
+```java
+public class PackageScanDecisions {
+    private final List<DecisionRecord> decisions = new ArrayList<>();
+
+    // Recording methods
+    public void recordSmartFileMatching(int matchCount, int totalExpected, String reason);
+    public void recordNestedZipExtraction(String zipName, int fileCount, String reason);
+    public void recordContentDetection(int fileCount, String examples, String markers);
+    public void recordNumericPatternMatching(int fileCount, String patterns, String reason);
+    public void recordExtensionPatternDetection(int fileCount, String convention, String examples);
+
+    // Access
+    public List<DecisionRecord> getDecisions();
+    public boolean hasDecisions();
+    public int getDecisionCount();
+
+    public record DecisionRecord(
+        DecisionType type,
+        String description,
+        String reason,
+        Map<String, String> details
+    ) {}
+
+    public enum DecisionType {
+        FILE_MATCHING_RECOVERY,
+        PACKAGE_EXTRACTION,
+        NUMERIC_PATTERN_DETECTION,
+        EXTENSION_PATTERN_DETECTION,
+        CONTENT_DETECTION,
+        LEGACY_FORMAT_CONVERSION
+    }
+}
+```
+
+### Integration with PackageContents
+
+**Step 1: Add to Builder**
+
+```java
+public class PackageContents {
+    private final PackageScanDecisions scanDecisions;
+
+    public static class Builder {
+        private final PackageScanDecisions scanDecisions = new PackageScanDecisions();
+
+        public PackageScanDecisions scanDecisions() {
+            return scanDecisions;
+        }
+    }
+
+    public PackageScanDecisions getScanDecisions() {
+        return scanDecisions;
+    }
+}
+```
+
+**Step 2: Record Decisions**
+
+```java
+// In PackageReader.java
+private static Map<String, LayerType> trySmartFileMatching(..., Builder builder) {
+    // ... smart matching logic ...
+
+    if (!smartMapping.isEmpty()) {
+        int mismatchPct = (int) ((gbrJobMappings.size() - matchCount) * 100.0
+                                 / gbrJobMappings.size());
+        String reason = String.format(
+            "%d%% of .gbrjob filenames didn't match; applied intelligent matching",
+            mismatchPct);
+
+        builder.scanDecisions().recordSmartFileMatching(
+            smartMapping.size(),
+            gbrJobMappings.size(),
+            reason
+        );
+    }
+
+    return smartMapping;
+}
+```
+
+### Conversion to ChangeDef
+
+**In GerberToMifConverter.java:**
+
+```java
+private ChangeDefList createChangeHistory(
+        PackageContents packageContents,
+        boolean hasDrillListings,
+        boolean hasPnPFiles) {
+
+    ChangeDefList changeHistory = new ChangeDefList();
+    int objectId = 1000;
+
+    // Smart decisions FIRST (chronological order)
+    objectId = addSmartDecisions(changeHistory, objectId,
+        packageContents.getScanDecisions());
+
+    // Then coordinate corrections
+    objectId = addCoordinateCorrections(changeHistory, objectId, ...);
+
+    return changeHistory;
+}
+
+private int addSmartDecisions(ChangeDefList history, int startId,
+                              PackageScanDecisions scanDecisions) {
+    int objectId = startId;
+
+    for (DecisionRecord decision : scanDecisions.getDecisions()) {
+        ChangeDef.ChangeType changeType = mapDecisionTypeToChangeType(decision.type());
+
+        ChangeDef change = ChangeDef.now(
+            objectId++,
+            getChangeDefName(decision.type()),
+            decision.description(),
+            "lib-pcb Package Scanner v0.80.7",
+            decision.reason(),
+            changeType,
+            List.of()  // No affected objects for scan decisions
+        );
+
+        history.addChange(change);
+    }
+
+    return objectId;
+}
+
+private ChangeDef.ChangeType mapDecisionTypeToChangeType(DecisionType type) {
+    return switch (type) {
+        case FILE_MATCHING_RECOVERY -> ChangeDef.ChangeType.FILE_MATCHING_RECOVERY;
+        case PACKAGE_EXTRACTION -> ChangeDef.ChangeType.PACKAGE_EXTRACTION;
+        case NUMERIC_PATTERN_DETECTION -> ChangeDef.ChangeType.NUMERIC_PATTERN_DETECTION;
+        case EXTENSION_PATTERN_DETECTION -> ChangeDef.ChangeType.EXTENSION_PATTERN_DETECTION;
+        case CONTENT_DETECTION -> ChangeDef.ChangeType.CONTENT_DETECTION;
+        case LEGACY_FORMAT_CONVERSION -> ChangeDef.ChangeType.LEGACY_FORMAT_CONVERSION;
+    };
+}
+```
+
+### Detection Priority Hierarchy
+
+Smart matching uses prioritized fallback:
+
+1. **Content detection** (Gerber X2 / G04) → MOST RELIABLE
+2. **Numeric patterns** (-02.gbr, -20.gbr) → FALLBACK
+3. **Extension patterns** (German PCB, KiCad) → FALLBACK
+
+Each method tracked separately in ChangeDefList.
+
+### Real-World Example
+
+**LP-Date12.2025.zip change history:**
+
+```java
+// Scan decision (first)
+ChangeDef extensionPattern = ChangeDef.now(
+    1000,
+    "Extension-Pattern-Detection",
+    "Detected 13 files using German PCB naming convention",
+    "lib-pcb Package Scanner v0.80.7",
+    "Package uses manufacturer-specific naming patterns; applied German PCB " +
+    "convention rules (examples: adb006030.gbr, adt001027.gbr, bs.gbr)",
+    ChangeDef.ChangeType.EXTENSION_PATTERN_DETECTION,
+    List.of()
+);
+
+// Conversion decision (second, chronologically later)
+ChangeDef formatDetection = ChangeDef.now(
+    1001,
+    "Gerber-Format-AutoDetect",
+    "Auto-detected RS-274D coordinate format (X2.5)",
+    "lib-pcb Gerber Converter v0.80.7",
+    "RS-274D files lack format headers; analyzed coordinates",
+    ChangeDef.ChangeType.MANUFACTURING_FIX,
+    List.of()
+);
+```
+
+### Chronological Ordering
+
+**Critical:** Smart decisions appear BEFORE coordinate corrections:
+
+```
+objectId: 1000 → Extension-Pattern-Detection (scan-time)
+objectId: 1001 → Gerber-Format-AutoDetect (parse-time)
+objectId: 1002 → Drill-Coordinate-Scaling (parse-time)
+objectId: 1003 → Assembly-Coordinate-Scaling (parse-time)
+```
+
+**Reason:** Decisions are recorded in chronological order (scanning happens before parsing/conversion).
+
+### Testing Pattern
+
+**Integration test verifies end-to-end tracking:**
+
+```java
+@Test
+void shouldTrackScanDecisionsInChangeHistory() throws Exception {
+    try (PackageContents pkg = PackageReader.scan(
+            Paths.get("src/test/resources/gerber/LP-Date12.2025.zip"))) {
+
+        // Verify scan decisions collected
+        assertNotNull(pkg.getScanDecisions());
+        assertTrue(pkg.getScanDecisions().hasDecisions());
+
+        // Convert to MIF
+        GerberToMifConverter converter = new GerberToMifConverter();
+        PCBDesign design = converter.convertPackage(pkg);
+
+        // Verify ChangeDef entries created
+        ChangeDefList history = design.getChangeHistory();
+        List<ChangeDef> smartDecisions = history.getChanges().stream()
+            .filter(c -> c.changeType() == ChangeDef.ChangeType.FILE_MATCHING_RECOVERY ||
+                        c.changeType() == ChangeDef.ChangeType.PACKAGE_EXTRACTION ||
+                        c.changeType() == ChangeDef.ChangeType.NUMERIC_PATTERN_DETECTION ||
+                        c.changeType() == ChangeDef.ChangeType.EXTENSION_PATTERN_DETECTION ||
+                        c.changeType() == ChangeDef.ChangeType.CONTENT_DETECTION)
+            .toList();
+
+        assertEquals(pkg.getScanDecisions().getDecisionCount(), smartDecisions.size(),
+            "Decision count should match ChangeDef entries");
+    }
+}
+```
+
+### Backward Compatibility
+
+**Zero risk:** Empty decisions → no ChangeDef entries.
+
+```java
+// Package with no smart decisions needed
+PackageScanDecisions decisions = new PackageScanDecisions();
+assertFalse(decisions.hasDecisions());
+
+// Converter handles gracefully
+ChangeDefList history = createChangeHistory(packageContents, ...);
+// history contains only coordinate corrections, no smart decisions
+```
+
+### Manufacturing Impact
+
+**Complete audit trail:**
+- ISO 9001 / AS9100 compliance
+- Verify automatic decisions reasonable
+- Debug conversion strategies
+- Export to manufacturers
+
+**User benefits:**
+- Transparency - know what lib-pcb is doing
+- Confidence - verify decisions correct
+- Debugging - identify strategies used
+
+## Common Patterns
+
+### IPC Class 2 Rules
+
+```java
+RuleDefList ipcClass2Rules() {
+    RuleDefList rules = new RuleDefList();
+
+    // Trace rules
+    rules.addRule(new RuleDef(
+        2001, "Min Trace Width", RuleDef.RuleType.MIN_TRACE_WIDTH,
+        100_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 2: Min trace width 100µm (4mil)"
+    ));
+
+    rules.addRule(new RuleDef(
+        2002, "Min Trace Spacing", RuleDef.RuleType.MIN_TRACE_SPACING,
+        100_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 2: Min trace spacing 100µm (4mil)"
+    ));
+
+    // Via rules
+    rules.addRule(new RuleDef(
+        2003, "Min Via Annular Ring", RuleDef.RuleType.MIN_VIA_ANNULAR_RING,
+        50_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 2: Min annular ring 50µm (2mil)"
+    ));
+
+    // Clearance rules
+    rules.addRule(new RuleDef(
+        2004, "Min Copper to Edge", RuleDef.RuleType.MIN_COPPER_TO_EDGE,
+        500_000, RuleDef.RuleSeverity.WARNING,
+        "IPC-6012 Class 2: Min copper to edge 500µm (20mil)"
+    ));
+
+    return rules;
+}
+```
+
+### IPC Class 3 Rules (Stricter)
+
+```java
+RuleDefList ipcClass3Rules() {
+    RuleDefList rules = new RuleDefList();
+
+    // 25% stricter trace width
+    rules.addRule(new RuleDef(
+        2001, "Min Trace Width", RuleDef.RuleType.MIN_TRACE_WIDTH,
+        125_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 3: Min trace width 125µm (5mil)"
+    ));
+
+    // 50% stricter annular ring
+    rules.addRule(new RuleDef(
+        2003, "Min Via Annular Ring", RuleDef.RuleType.MIN_VIA_ANNULAR_RING,
+        75_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 3: Min annular ring 75µm (3mil)"
+    ));
+
+    // 2x stricter copper to edge
+    rules.addRule(new RuleDef(
+        2004, "Min Copper to Edge", RuleDef.RuleType.MIN_COPPER_TO_EDGE,
+        1_000_000, RuleDef.RuleSeverity.ERROR,
+        "IPC-6012 Class 3: Min copper to edge 1mm (40mil)"
+    ));
+
+    return rules;
+}
+```
+
+### Common Surface Finishes
+
+```java
+FinishDefList commonFinishes() {
+    FinishDefList finishes = new FinishDefList();
+
+    // ENIG - most common for fine-pitch
+    finishes.addFinish(new FinishDef(
+        3001, "ENIG", FinishDef.FinishType.ENIG, 100,
+        "Electroless Nickel Immersion Gold: 5µm Ni + 0.1µm Au"
+    ));
+
+    // HASL Lead-Free - cost-effective
+    finishes.addFinish(new FinishDef(
+        3002, "HASL Lead-Free", FinishDef.FinishType.HASL_LEAD_FREE, 1000,
+        "RoHS compliant, good solderability, not flat"
+    ));
+
+    // OSP - budget option
+    finishes.addFinish(new FinishDef(
+        3003, "OSP", FinishDef.FinishType.OSP, 0,
+        "Organic Solderability Preservative, limited shelf life"
+    ));
+
+    // Immersion Silver - flat, good for RF
+    finishes.addFinish(new FinishDef(
+        3004, "Immersion Silver", FinishDef.FinishType.IMMERSION_SILVER, 200,
+        "Flat surface, good for RF applications"
+    ));
+
+    return finishes;
+}
+```
+
+## Testing
+
+### Unit Tests (98 tests)
+
+All models have comprehensive unit tests:
+- Basic operations (create, add, query)
+- All enum values
+- Query methods
+- Helper methods (conversions, display names)
+- Edge cases (null, empty, validation)
+
+### Round-Trip Tests (38 tests)
+
+All parsers and writers have round-trip tests:
+- Write → Parse → Verify
+- All enum values
+- Empty/single/multiple items
+- Value ranges
+- Error handling
+
+Run tests:
+```bash
+mvn test -Dtest="ChangeDef*Test,RuleDef*Test,FinishDef*Test"
+```
+
+## Related Skills
+
+**Prerequisites** (understand these first):
+- **core-models** - Core PCB data model classes
+- **mif-format-basics** - MIF binary format fundamentals
+
+**Next Steps** (common follow-up tasks):
+- **auto-fix-layer-specific** - Using change tracking in auto-fix
+- **battle-test-auto-fix** - Validating change tracking
+
+**Related Topics** (you might also be interested in):
+- **mif-parser** - MIF streaming parser implementation
+- **mif-writer** - MIF binary stream writer
+- **fix-command** - CLI command for applying fixes
+
+**See Also:**
+- **skill-navigator** - Find other skills by problem, category, or tag
+
+---
+
+**Status:** production-ready | **Priority:** high
+**Tags:** #change-tracking #audit-trail #manufacturing-rules #surface-finish #mif-classes
+**Last Updated:** 2026-01-31

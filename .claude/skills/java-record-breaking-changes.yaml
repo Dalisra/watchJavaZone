@@ -1,0 +1,496 @@
+# java-record-breaking-changes
+
+**Managing Java record constructor breaking changes** - Strategies for adding fields to records without breaking existing code.
+
+## When to Use This Skill
+
+Use when:
+- Adding new fields to existing Java records
+- Encountering compilation errors after record modifications
+- Planning API changes for record-based models
+- Migrating from direct constructor calls to Builder pattern
+
+## The Problem
+
+Java records have a **canonical constructor** that includes all fields. Adding a field creates a **breaking change** for all constructor call sites.
+
+### Example Breaking Change
+
+**Before (8 parameters):**
+```java
+public record KiCadBoard(
+    int version,
+    String generator,
+    double thickness,
+    List<KiCadLayer> layers,
+    List<KiCadNet> nets,
+    List<KiCadFootprint> footprints,
+    List<KiCadSegment> segments,
+    List<KiCadZone> zones
+) {}
+```
+
+**After adding fields (10 parameters):**
+```java
+public record KiCadBoard(
+    int version,
+    String generator,
+    double thickness,
+    List<KiCadLayer> layers,
+    List<KiCadNet> nets,
+    List<KiCadFootprint> footprints,
+    List<KiCadSegment> segments,
+    List<KiCadZone> zones,
+    List<KiCadGraphicLine> graphicLines,    // NEW
+    List<KiCadGraphicArc> graphicArcs       // NEW
+) {}
+```
+
+**Result:** All existing constructor calls break!
+
+```
+[ERROR] constructor KiCadBoard cannot be applied to given types;
+  required: int,String,double,List<KiCadLayer>,List<KiCadNet>,List<KiCadFootprint>,
+            List<KiCadSegment>,List<KiCadZone>,List<KiCadGraphicLine>,List<KiCadGraphicArc>
+  found:    int,String,double,List<KiCadLayer>,List<KiCadNet>,List<KiCadFootprint>,
+            List<KiCadSegment>,List<KiCadZone>
+  reason: actual and formal argument lists differ in length
+```
+
+## Finding All Affected Call Sites
+
+### Search for Constructor Calls
+
+```bash
+# Find all direct constructor calls
+grep -rn "new KiCadBoard(" src/
+
+# Find in test files
+grep -rn "new KiCadBoard(" src/test/
+```
+
+**Example output:**
+```
+src/test/java/no/cantara/pcb/lib/kicad/converter/KiCadStackupConversionTest.java:21:        KiCadBoard board = new KiCadBoard(
+src/test/java/no/cantara/pcb/lib/kicad/converter/KiCadStackupConversionTest.java:86:        KiCadBoard board = new KiCadBoard(
+src/test/java/no/cantara/pcb/lib/kicad/converter/KiCadStackupConversionTest.java:134:            KiCadBoard board = new KiCadBoard(
+```
+
+### Compilation Will Find Them Too
+
+```bash
+mvn compile 2>&1 | grep "constructor.*cannot be applied"
+```
+
+Maven will report all call sites that need updating.
+
+## Solution Strategies
+
+### Strategy 1: Update All Constructor Calls
+
+**Pros:**
+- Simple and direct
+- No intermediate state
+
+**Cons:**
+- Can be tedious for many call sites
+- Requires updating all code at once
+
+**How to do it:**
+
+```java
+// Old constructor call (8 parameters)
+new KiCadBoard(
+    20240108,
+    "pcbnew",
+    1.6,
+    List.of(layers...),
+    List.of(nets...),
+    List.of(footprints...),
+    List.of(segments...),
+    List.of(zones...)
+)
+
+// Updated constructor call (10 parameters)
+new KiCadBoard(
+    20240108,
+    "pcbnew",
+    1.6,
+    List.of(layers...),
+    List.of(nets...),
+    List.of(footprints...),
+    List.of(segments...),
+    List.of(zones...),
+    List.of(),  // NEW: graphicLines
+    List.of()   // NEW: graphicArcs
+)
+```
+
+### Strategy 2: Use Builder Pattern
+
+**Pros:**
+- More resilient to future changes
+- Optional parameters are clearer
+- Better for records with many fields
+
+**Cons:**
+- More boilerplate in the record
+- Slightly more verbose at call sites
+
+**How to implement:**
+
+```java
+public record KiCadBoard(
+    int version,
+    String generator,
+    double thickness,
+    List<KiCadLayer> layers,
+    List<KiCadNet> nets,
+    List<KiCadFootprint> footprints,
+    List<KiCadSegment> segments,
+    List<KiCadZone> zones,
+    List<KiCadGraphicLine> graphicLines,
+    List<KiCadGraphicArc> graphicArcs
+) {
+    // Builder pattern
+    public static class Builder {
+        private int version = 20240108;
+        private String generator = "pcbnew";
+        private double thickness = 1.6;
+        private List<KiCadLayer> layers = new ArrayList<>();
+        private List<KiCadNet> nets = new ArrayList<>();
+        private List<KiCadFootprint> footprints = new ArrayList<>();
+        private List<KiCadSegment> segments = new ArrayList<>();
+        private List<KiCadZone> zones = new ArrayList<>();
+        private List<KiCadGraphicLine> graphicLines = new ArrayList<>();
+        private List<KiCadGraphicArc> graphicArcs = new ArrayList<>();
+
+        public Builder version(int version) {
+            this.version = version;
+            return this;
+        }
+
+        // ... other setters ...
+
+        public Builder addGraphicLine(KiCadGraphicLine graphicLine) {
+            this.graphicLines.add(graphicLine);
+            return this;
+        }
+
+        public Builder addGraphicArc(KiCadGraphicArc graphicArc) {
+            this.graphicArcs.add(graphicArc);
+            return this;
+        }
+
+        public KiCadBoard build() {
+            return new KiCadBoard(version, generator, thickness, layers, nets,
+                footprints, segments, zones, graphicLines, graphicArcs);
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+}
+```
+
+**Usage:**
+
+```java
+// Old style (still works if all parameters provided)
+new KiCadBoard(version, generator, thickness, layers, nets, footprints,
+    segments, zones, graphicLines, graphicArcs)
+
+// Builder style (more resilient to changes)
+KiCadBoard.builder()
+    .version(20240108)
+    .generator("pcbnew")
+    .thickness(1.6)
+    .layers(layerList)
+    .nets(netList)
+    .footprints(footprintList)
+    .segments(segmentList)
+    .zones(zoneList)
+    .graphicLines(graphicLineList)  // Can be omitted if using defaults
+    .graphicArcs(graphicArcList)    // Can be omitted if using defaults
+    .build()
+```
+
+### Strategy 3: Batch Update with sed/awk
+
+For many similar constructor calls, use command-line tools:
+
+```bash
+# Add two List.of() parameters before closing parenthesis
+sed -i 's/List\.of()   \/\/ No zones$/List.of(),  \/\/ No zones\n            List.of(),  \/\/ No graphic lines\n            List.of()   \/\/ No graphic arcs/g' \
+    src/test/java/path/to/Test.java
+```
+
+**⚠️ Warning:** Test the regex on a copy first! One wrong pattern can corrupt files.
+
+## Prevention Strategies
+
+### Use Builder Pattern from the Start
+
+For records with:
+- More than 5 parameters
+- Likelihood of future growth
+- Many optional/collection parameters
+
+**Start with a Builder:**
+
+```java
+public record ComplexModel(
+    String field1,
+    String field2,
+    List<Item> items,
+    Map<String, Value> values
+) {
+    public static class Builder {
+        // ... builder implementation ...
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+}
+```
+
+### Use Default Values in Compact Constructor
+
+```java
+public record KiCadBoard(
+    int version,
+    String generator,
+    double thickness,
+    List<KiCadLayer> layers,
+    List<KiCadNet> nets,
+    List<KiCadFootprint> footprints,
+    List<KiCadSegment> segments,
+    List<KiCadZone> zones,
+    List<KiCadGraphicLine> graphicLines,
+    List<KiCadGraphicArc> graphicArcs
+) {
+    // Compact constructor with defaults
+    public KiCadBoard {
+        Objects.requireNonNull(generator, "Generator cannot be null");
+        Objects.requireNonNull(layers, "Layers cannot be null");
+        Objects.requireNonNull(nets, "Nets cannot be null");
+        Objects.requireNonNull(footprints, "Footprints cannot be null");
+        Objects.requireNonNull(segments, "Segments cannot be null");
+        Objects.requireNonNull(zones, "Zones cannot be null");
+        Objects.requireNonNull(graphicLines, "Graphic lines cannot be null");
+        Objects.requireNonNull(graphicArcs, "Graphic arcs cannot be null");
+
+        if (thickness <= 0) {
+            throw new IllegalArgumentException("Board thickness must be positive");
+        }
+
+        // Make collections immutable
+        layers = List.copyOf(layers);
+        nets = List.copyOf(nets);
+        footprints = List.copyOf(footprints);
+        segments = List.copyOf(segments);
+        zones = List.copyOf(zones);
+        graphicLines = List.copyOf(graphicLines);
+        graphicArcs = List.copyOf(graphicArcs);
+    }
+}
+```
+
+### Document Breaking Changes in Javadoc
+
+```java
+/**
+ * Represents a complete KiCad PCB board design.
+ *
+ * <p><strong>API Note:</strong> This is a record type. Adding new parameters
+ * to the constructor is a breaking change. Consider using the {@link Builder}
+ * pattern for forward compatibility.
+ *
+ * @param version the KiCad file format version
+ * @param generator the tool that generated this file
+ * // ... other parameters ...
+ * @since 0.85.0
+ */
+public record KiCadBoard(/* ... */) {
+}
+```
+
+## Testing After Breaking Changes
+
+### Verify All Tests Compile and Pass
+
+```bash
+# Clean build to ensure all changes are picked up
+mvn clean compile
+
+# Run full test suite
+mvn test
+
+# Check for compilation warnings
+mvn compile -X 2>&1 | grep -i "warning"
+```
+
+### Check for Missed Call Sites
+
+Sometimes call sites hide in:
+- Generated code
+- Test resources
+- Documentation examples
+- Build scripts
+
+```bash
+# Search in all files (not just Java)
+find . -type f -name "*.java" -o -name "*.md" -o -name "*.xml" | \
+    xargs grep -l "new KiCadBoard("
+```
+
+## Communication Best Practices
+
+### Document in Commit Message
+
+```
+fix: Add graphic line/arc support to KiCadBoard
+
+BREAKING CHANGE: KiCadBoard constructor now requires 10 parameters
+(added graphicLines and graphicArcs). All direct constructor calls
+must be updated. Consider using KiCadBoard.builder() for future
+compatibility.
+
+Updated files:
+- KiCadStackupConversionTest.java (6 call sites)
+- ... other files ...
+```
+
+### Update CHANGELOG.md
+
+```markdown
+## [0.86.0] - 2026-02-07
+
+### Breaking Changes
+- **KiCadBoard**: Added `graphicLines` and `graphicArcs` parameters to constructor
+  - **Migration**: Add `List.of()` for both new parameters to existing calls
+  - **Recommendation**: Use `KiCadBoard.builder()` for forward compatibility
+```
+
+## Common Pitfalls
+
+### Pitfall 1: Forgetting Test Files
+
+**Symptom:** Production code compiles, tests fail to compile
+
+**Solution:** Search test directories explicitly:
+```bash
+grep -rn "new KiCadBoard(" src/test/
+```
+
+### Pitfall 2: Wrong Parameter Order
+
+**Symptom:** Compilation succeeds but runtime behavior is wrong
+
+**Example:**
+```java
+// WRONG: Swapped graphicLines and graphicArcs
+new KiCadBoard(version, generator, thickness, layers, nets, footprints,
+    segments, zones,
+    List.of(arcs),   // ❌ Wrong! Should be lines
+    List.of(lines)   // ❌ Wrong! Should be arcs
+)
+```
+
+**Solution:** Use descriptive comments:
+```java
+new KiCadBoard(version, generator, thickness, layers, nets, footprints,
+    segments, zones,
+    List.of(),  // graphicLines
+    List.of()   // graphicArcs
+)
+```
+
+### Pitfall 3: Null Instead of Empty List
+
+**Symptom:** NullPointerException at runtime
+
+**Example:**
+```java
+new KiCadBoard(version, generator, thickness, layers, nets, footprints,
+    segments, zones,
+    null,  // ❌ Wrong! Will cause NPE
+    null   // ❌ Wrong! Will cause NPE
+)
+```
+
+**Solution:** Always use `List.of()` for empty lists:
+```java
+new KiCadBoard(version, generator, thickness, layers, nets, footprints,
+    segments, zones,
+    List.of(),  // ✅ Correct
+    List.of()   // ✅ Correct
+)
+```
+
+## IDE Support
+
+### IntelliJ IDEA
+
+**Refactoring support:**
+1. Right-click on record name
+2. Refactor → Change Signature
+3. Add new parameters
+4. Preview changes before applying
+
+**Find usages:**
+- `Alt+F7` (Windows/Linux) or `Cmd+F7` (Mac)
+- Shows all constructor call sites
+
+### VS Code
+
+**Search for constructor calls:**
+```
+Ctrl+Shift+F (Windows/Linux) or Cmd+Shift+F (Mac)
+Search: new RecordName\(
+```
+
+## Alternative: Wrapper Classes
+
+For frequently changing records, consider a wrapper:
+
+```java
+// Stable interface
+public class KiCadBoardWrapper {
+    private final KiCadBoard board;
+
+    public KiCadBoardWrapper(KiCadBoard board) {
+        this.board = board;
+    }
+
+    // Delegate methods
+    public int getVersion() { return board.version(); }
+    public String getGenerator() { return board.generator(); }
+    // ...
+
+    // Can add new methods without breaking constructor
+    public List<KiCadGraphicLine> getGraphicLines() {
+        return board.graphicLines();
+    }
+}
+```
+
+## Related Concepts
+
+- **core-models**: Core PCB data model classes using records
+- **java-builders**: Builder pattern implementation for complex objects
+- **api-evolution**: Managing API changes and backwards compatibility
+
+## References
+
+- Issue #236: Added graphicLines/graphicArcs to KiCadBoard (breaking change)
+- Java Language Specification: Records (JEP 395)
+- `KiCadBoard.java`: Record with Builder pattern
+- `KiCadStackupConversionTest.java`: Example of updating constructor calls
+
+---
+
+**Last Updated:** 2026-02-07
+**Related Issue:** #236 (KiCad board outline parsing)

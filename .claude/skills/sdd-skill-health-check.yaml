@@ -1,0 +1,124 @@
+name: sdd-skill-health-check
+description: Audit your skill infrastructure for staleness, misplacement, and quality issues. Run quarterly or whenever skills feel out of date. Identifies what to fix, update, or delete.
+version: 1.0.0
+
+instructions: |
+  # Skill Health Check
+
+  ## When to Use This
+
+  Run a health check when:
+  - Skills feel outdated (code has changed but skills haven't)
+  - Claude is ignoring skill guidance (skill may be stale or misplaced)
+  - Preparing for a new team member joining
+  - Quarterly maintenance (every 3 months)
+  - After a major refactoring or restructure
+
+  ## Step 1: Inventory
+
+  List all skills:
+  ```bash
+  ls ~/.claude/skills/common/
+  ls .claude/skills/    # if you're in a project
+  ```
+
+  For each skill, note:
+  - Name
+  - Status (draft/beta/production-ready)
+  - Last modified date
+  - Approximate last used date
+
+  ## Step 2: The Four Questions
+
+  For each skill, answer:
+
+  **Q1: Is it still used?**
+  - When did someone last invoke this skill?
+  - If nobody has used it in 3 months: mark for deletion
+  - If you can't remember using it: mark for deletion
+
+  **Q2: Is the guidance still accurate?**
+  - Do the file paths still exist?
+  - Do the class/method names still match the codebase?
+  - Does the described pattern still reflect how the project works?
+  - If anything is wrong: mark for update
+
+  **Q3: Is it still needed?**
+  - Does Claude handle this correctly now WITHOUT the skill?
+  - Has a new framework/library made this pattern obsolete?
+  - Was this skill solving a temporary problem that no longer exists?
+  - If yes to any: mark for deletion
+
+  **Q4: Does another developer understand it?**
+  - Can someone who didn't write this skill use it successfully?
+  - Are the trigger phrases clear?
+  - Is the Quick Start specific enough to follow?
+  - If no: mark for rewrite
+
+  ## Step 3: The Triage Table
+
+  | Skill | Used? | Accurate? | Needed? | Understood? | Action |
+  |-------|-------|-----------|---------|-------------|--------|
+  | skill-name | ✅ | ✅ | ✅ | ✅ | Keep |
+  | skill-name | ❌ | — | — | — | Delete |
+  | skill-name | ✅ | ❌ | ✅ | ✅ | Update |
+  | skill-name | ✅ | ✅ | ✅ | ❌ | Rewrite |
+
+  ## Step 4: Act
+
+  **Delete (most important action):**
+  ```bash
+  rm .claude/skills/[skill-name].yaml
+  ```
+  Deletion is health. A small accurate library beats a large stale one.
+  Commit: `chore: remove stale [skill-name] skill`
+
+  **Update:**
+  - Fix file paths and line numbers
+  - Update class/method names
+  - Add new patterns discovered since writing
+  - Update `last_verified` date in metadata
+  Commit: `docs: update [skill-name] skill with current patterns`
+
+  **Rewrite:**
+  - Keep the name and purpose
+  - Rewrite the Quick Start to be specific and actionable
+  - Add concrete trigger phrases
+  - Test with the Acid Test (new Claude session, does it work?)
+
+  **Promote:**
+  If a project-specific skill has appeared in 2+ projects AND is language-agnostic:
+  - Move to `~/.claude/skills/common/`
+  - Update any cross-references
+
+  ## Step 5: Check CLAUDE.md
+
+  After auditing skills, also check CLAUDE.md:
+  ```
+  Line count: target under 200 lines for a library, under 300 for a workspace
+  ```
+
+  Run `context-engineering-audit` for a full CLAUDE.md health check.
+
+  ## Health Signals
+
+  **Healthy skill library:**
+  - Every skill has been used in the last 90 days
+  - Skills pass the Acid Test (new session, Claude follows guidance)
+  - New team members can onboard using only CLAUDE.md + skills
+  - Skill count is growing slower than codebase (skills compound, not multiply)
+
+  **Unhealthy skill library:**
+  - Skills reference files/methods that no longer exist
+  - Claude ignores skill guidance (skill too vague or stale)
+  - Developers work around skills instead of using them
+  - Skill count growing faster than skills are actually used
+
+  ## The Minimum Viable Audit (5 minutes)
+
+  If you don't have 30 minutes:
+  1. List all skills
+  2. For each one: "Would I be embarrassed if a new hire followed this exactly?"
+  3. If yes: delete or update immediately
+
+tags: [maintenance, audit, quality, skills, health]

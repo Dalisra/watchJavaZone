@@ -1,0 +1,138 @@
+name: sdd-domain-skill-extractor
+description: Guided exercise to identify and write your first domain skills. Uses the Five Fingerprints method to surface tacit knowledge and turn it into skills Claude can use.
+version: 1.0.0
+
+instructions: |
+  # Domain Skill Extractor
+
+  ## When to Use This
+
+  Use this skill when:
+  - Writing your first domain skill and don't know where to start
+  - Trying to identify which patterns in your codebase should become skills
+  - Onboarding onto SDD and want to build skill infrastructure quickly
+  - Helping a team identify their highest-value first skills
+
+  ## The Five Fingerprints Exercise
+
+  Answer these five questions. Write answers on paper (not digitally — physical writing forces reflection).
+
+  ---
+
+  **Question 1: The New Team Member Explanation**
+  > "What do you explain to every new developer who joins the team about your codebase?"
+
+  These are your most important skills. If you explain it to every new person, you need to explain it to Claude too — but now you only explain it once, in a skill.
+
+  Examples:
+  - "Our API always wraps responses in ResponseWrapper<T>"
+  - "We use Flyway for migrations, naming convention is V{n}__{desc}.sql"
+  - "Config is in application.yml, never hardcoded"
+
+  ---
+
+  **Question 2: The Inevitable Mistake**
+  > "What mistake does every new developer make at least once?"
+
+  These are your highest-value error-prevention skills. The mistake that burns everyone is the mistake worth encoding.
+
+  Examples:
+  - "Forgetting to register the new validator in ValidatorRegistry.java"
+  - "Using millimeters instead of nanometers in coordinate calculations"
+  - "Committing directly to main instead of creating a branch"
+
+  ---
+
+  **Question 3: The Repeated Boilerplate**
+  > "What code do you write (or copy-paste) every time you add a new [X]?"
+
+  These are your highest-leverage automation skills. If you copy-paste the same 30 lines every time, Claude should generate them correctly from a skill.
+
+  Examples:
+  - "Every new REST endpoint needs: @RestController, custom error handler, integration test"
+  - "Every new entity needs: JPA entity, repository, service, and mapper"
+  - "Every new test class needs: @ExtendWith(MockitoExtension.class) + specific imports"
+
+  ---
+
+  **Question 4: The Repeated Code Review Comment**
+  > "What comment do you leave in code reviews most often?"
+
+  These are the standards that aren't written down. They're your most valuable "quality gate" skills.
+
+  Examples:
+  - "Always add the null check here"
+  - "This should use our custom DateUtils, not java.time directly"
+  - "Tests should follow the Arrange-Act-Assert pattern"
+
+  ---
+
+  **Question 5: The Tribal Knowledge**
+  > "What does everyone on the team know, but isn't documented anywhere?"
+
+  These are your most fragile skills — they exist only in people's heads. The next person who joins won't know. The person who knows might leave.
+
+  Examples:
+  - "The authentication service has a 30-second cache — don't call it in loops"
+  - "The legacy payment module uses a different exception hierarchy — don't mix them"
+  - "The staging environment has a 5-second delay on database writes"
+
+  ---
+
+  ## Prioritization
+
+  From your five answers, pick ONE to write first. Choose the answer with the highest:
+
+  | Criterion | Weight |
+  |-----------|--------|
+  | Frequency (daily > weekly > monthly) | High |
+  | Pain (wastes hours > wastes minutes) | High |
+  | Risk (causes bugs > causes slowdowns) | High |
+  | Specificity (specific to project > generic) | Medium |
+
+  The answer that scores highest = your first skill.
+
+  ## Writing the Skill
+
+  Don't open the template. Don't write YAML by hand.
+
+  Describe the pattern to Claude in plain language — like you'd explain to a new team member.
+  Claude will write the skill for you.
+
+  **Example prompt:**
+  > "Create a skill for how we add validators in this project. They live in
+  > `src/main/java/com/example/validators/`, extend `AbstractValidator<T>`,
+  > implement `validate()` and `getValidatorId()`, and must be registered in
+  > `ValidatorRegistry.java` at line 47. The most common mistake is forgetting
+  > the registration step."
+
+  Claude produces the YAML. You review for accuracy — file paths correct?
+  conventions right? Nothing missing? Save it to `.claude/skills/[name].yaml`.
+
+  Keep it focused on ONE pattern. You can add depth later as you discover gaps.
+
+  ## The Acid Test
+
+  After saving the skill:
+  1. Start a **new Claude session** (fresh context)
+  2. Ask Claude to do the thing your skill covers, using your natural language
+  3. Did it follow your skill? If yes: it works. If no: tell Claude what it missed — ask it to update the skill to fix the gap.
+
+  ## Your Next Four Skills
+
+  After writing the first skill, look at your remaining four answers.
+  Each is a skill waiting to be written.
+
+  Prioritize by the same criteria. Write one per day for a week.
+  By end of week: 5 skills, all tested, all solving real pain.
+
+  ## When to Stop
+
+  You don't need skills for everything. Stop creating a skill when:
+  - Claude already handles it correctly without guidance
+  - The pattern changes too often to keep a skill current
+  - The effort to maintain the skill exceeds the benefit
+
+  A 10-skill accurate library beats a 50-skill stale one.
+
+tags: [skill-writing, onboarding, sdd, domain-knowledge, exercise]
