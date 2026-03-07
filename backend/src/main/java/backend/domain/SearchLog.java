@@ -1,34 +1,33 @@
 package backend.domain;
 
-import io.micronaut.data.annotation.AutoPopulated;
+import io.micronaut.core.annotation.Introspected;
+import io.micronaut.data.annotation.GeneratedValue;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@MappedEntity("video_impressions")
-public class VideoImpression {
+@Introspected
+@MappedEntity("search_logs")
+public class SearchLog {
 
     @Id
-    @AutoPopulated
+    @GeneratedValue(GeneratedValue.Type.AUTO)
     private UUID id;
 
-    private String videoId;
-    private String endpoint;
+    private String query;
+    private Integer resultsCount;
     private String ipAddress;
     private String userAgent;
     private Instant createdAt;
 
-    public VideoImpression() {
-    }
-
-    public VideoImpression(String videoId, String endpoint, String ipAddress, String userAgent) {
-        this.videoId = videoId;
-        this.endpoint = endpoint;
+    public SearchLog(String query, Integer resultsCount, String ipAddress, String userAgent, Instant createdAt) {
+        this.query = query;
+        this.resultsCount = resultsCount;
         this.ipAddress = ipAddress;
         this.userAgent = userAgent;
-        this.createdAt = Instant.now();
+        this.createdAt = createdAt;
     }
 
     public UUID getId() {
@@ -39,20 +38,20 @@ public class VideoImpression {
         this.id = id;
     }
 
-    public String getVideoId() {
-        return videoId;
+    public String getQuery() {
+        return query;
     }
 
-    public void setVideoId(String videoId) {
-        this.videoId = videoId;
+    public void setQuery(String query) {
+        this.query = query;
     }
 
-    public String getEndpoint() {
-        return endpoint;
+    public Integer getResultsCount() {
+        return resultsCount;
     }
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
+    public void setResultsCount(Integer resultsCount) {
+        this.resultsCount = resultsCount;
     }
 
     public String getIpAddress() {

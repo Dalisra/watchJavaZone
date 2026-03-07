@@ -7,28 +7,22 @@ import io.micronaut.data.annotation.MappedEntity;
 import java.time.Instant;
 import java.util.UUID;
 
-@MappedEntity("video_impressions")
-public class VideoImpression {
+@MappedEntity("video_events")
+public class VideoEvent {
 
     @Id
     @AutoPopulated
     private UUID id;
 
     private String videoId;
-    private String endpoint;
+    private String userUuid;
+    private String eventType;
+    private Integer playbackPositionSecs;
     private String ipAddress;
     private String userAgent;
     private Instant createdAt;
 
-    public VideoImpression() {
-    }
-
-    public VideoImpression(String videoId, String endpoint, String ipAddress, String userAgent) {
-        this.videoId = videoId;
-        this.endpoint = endpoint;
-        this.ipAddress = ipAddress;
-        this.userAgent = userAgent;
-        this.createdAt = Instant.now();
+    public VideoEvent() {
     }
 
     public UUID getId() {
@@ -47,12 +41,28 @@ public class VideoImpression {
         this.videoId = videoId;
     }
 
-    public String getEndpoint() {
-        return endpoint;
+    public String getUserUuid() {
+        return userUuid;
     }
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
+    public void setUserUuid(String userUuid) {
+        this.userUuid = userUuid;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public Integer getPlaybackPositionSecs() {
+        return playbackPositionSecs;
+    }
+
+    public void setPlaybackPositionSecs(Integer playbackPositionSecs) {
+        this.playbackPositionSecs = playbackPositionSecs;
     }
 
     public String getIpAddress() {

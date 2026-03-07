@@ -24,20 +24,21 @@ public class VideoTrackingService {
 
     /**
      * Asynchronously logs that a set of videos was surfaced to a user.
-     * 
-     * @param videoIds The list of video IDs that were displayed.
-     * @param endpoint The identifier for where they were shown (e.g. "list",
-     *                 "search", "trending").
+     *
+     * @param videoIds  The list of video IDs that were displayed.
+     * @param endpoint  The identifier for where they were shown (e.g. "list", "search", "trending").
+     * @param ipAddress The client IP address (may be null).
+     * @param userAgent The client User-Agent header (may be null).
      */
-    @ExecuteOn(TaskExecutors.IO)
-    public void trackImpressions(List<String> videoIds, String endpoint) {
+    @ExecuteOn(TaskExecutors.VIRTUAL)
+    public void trackImpressions(List<String> videoIds, String endpoint, String ipAddress, String userAgent) {
         if (videoIds == null || videoIds.isEmpty()) {
             return;
         }
 
         try {
             List<VideoImpression> impressions = videoIds.stream()
-                    .map(id -> new VideoImpression(id, endpoint))
+                    .map(id -> new VideoImpression(id, endpoint, ipAddress, userAgent))
                     .collect(Collectors.toList());
 
             impressionRepository.saveAll(impressions);
