@@ -1,0 +1,101 @@
+name: starter-code-review
+description: Effective code review with AI assistance. Prompt patterns for different review types — security, correctness, design, readability. What to accept, what to verify, what to reject.
+version: 1.0.0
+
+instructions: |
+  # Code Review
+
+  ## When to Use This
+
+  Use this skill when:
+  - Reviewing a PR from a colleague
+  - Self-reviewing your own AI-generated code
+  - Reviewing code before merging to main
+  - Doing a security audit on a new feature
+  - Checking edge case coverage
+
+  ## Review Types and Prompts
+
+  ### Correctness Review
+  > "Review this code for logical errors. What inputs would cause wrong behavior?
+  > What edge cases are not handled? What assumptions might be violated?"
+
+  ### Security Review
+  > "Review this code for security vulnerabilities.
+  > Check for: SQL injection, XSS, authentication gaps, authorization bypasses,
+  > sensitive data in logs, hardcoded secrets, input validation gaps."
+
+  ### Design Review
+  > "Review this code for design quality.
+  > Is the responsibility clear and focused? Are there any violations of SOLID principles?
+  > What would be hard to change if requirements shifted?"
+
+  ### Performance Review
+  > "Review this code for performance issues.
+  > Are there N+1 queries? Unnecessary allocations? Missing indexes?
+  > What happens under high load or with large data sets?"
+
+  ### Readability Review
+  > "Review this code for readability.
+  > What would confuse a developer reading this for the first time?
+  > What names are unclear? What logic is non-obvious and needs a comment?"
+
+  ### Test Coverage Review
+  > "Review the test coverage for this code.
+  > What scenarios are NOT tested? What edge cases are missing?
+  > What would break silently if I changed [specific logic]?"
+
+  ## The Self-Review Ritual (Before Creating a PR)
+
+  Run these in sequence on your own code:
+
+  1. **Git diff first:** Read every changed line yourself before asking Claude
+     ```
+     git diff main
+     ```
+
+  2. **Correctness check:**
+     > "I'm about to submit this PR. Review it for correctness.
+     > What could go wrong at runtime?"
+
+  3. **Edge case check:**
+     > "What inputs or states would cause this code to fail or produce wrong results?"
+
+  4. **Simplicity check:**
+     > "Is there a simpler way to achieve the same result?
+     > What could be removed without losing correctness?"
+
+  5. **Verify Claude's review:** If Claude finds an issue, read the code yourself to confirm.
+     Don't apply Claude's suggested fix without understanding WHY it's wrong.
+
+  ## What to Accept from Claude's Review
+
+  ✅ Specific bug identification with clear explanation
+  ✅ Missing edge case you genuinely hadn't considered
+  ✅ Security vulnerability with CVE or pattern reference
+  ✅ Performance issue with clear mechanism (N+1, O(n²), etc.)
+
+  ## What to Verify Before Accepting
+
+  ⚠️ Style suggestions (may not match your team's conventions)
+  ⚠️ Refactoring suggestions (test that behavior doesn't change)
+  ⚠️ Performance suggestions (measure before and after)
+  ⚠️ "This pattern is better" claims (ask why, evaluate for your context)
+
+  ## What to Reject
+
+  ❌ Generic "improve error handling" without specific issue
+  ❌ Suggestions to change things that are intentional decisions
+  ❌ Framework/library recommendations without clear justification
+  ❌ "This could be more functional/object-oriented/reactive" — style wars
+
+  ## The Final Question
+
+  Before approving any code (AI-generated or human-written):
+  > "If this code has a bug that reaches production, what is the worst case?
+  > How long would it take to detect it? How hard would it be to fix?"
+
+  If the answer is "catastrophic and slow to detect" → review again more carefully.
+  If the answer is "minor and immediately obvious" → ship it.
+
+tags: [code-review, quality, security, process]

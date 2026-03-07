@@ -1,0 +1,787 @@
+---
+name: regression-prevention
+description: Comprehensive strategies for preventing bugs from recurring through testing and pattern recognition
+tags: [testing, quality, regression, prevention, best-practices]
+status: production-ready
+priority: high
+relatedSkills: [tdd-pcb, sequential-init-bugs, proactive-bug-hunting, qa-test-quality]
+---
+
+# Regression Prevention
+
+## When to Use This
+
+Use this skill when:
+
+- **After fixing a bug** - Ensure it never comes back
+- **Before releases** - Validate no regressions introduced
+- **Code reviews** - Check for regression prevention
+- **Quality improvements** - Build systematic defenses
+
+You're in the right place if:
+- You want bugs to stay fixed permanently
+- You're tired of the same bug returning
+- You want systematic regression prevention
+- You're building quality into the process
+
+## Quick Start
+
+**4-Layer Defense:**
+
+1. **Test Layer** - Comprehensive test suites prevent re-introduction
+2. **Pattern Layer** - Document patterns to prevent similar bugs
+3. **Process Layer** - Systematic reviews catch regressions early
+4. **Automation Layer** - Tools enforce prevention automatically
+
+## Overview
+
+**What's Regression Prevention?**
+
+Regression prevention ensures fixed bugs stay fixed and similar bugs never appear. It's not just about testing - it's a comprehensive defense strategy.
+
+**What's Covered:**
+- Comprehensive testing strategies
+- Bug pattern documentation
+- Systematic review processes
+- Automation and tooling
+- Real-world examples from lib-pcb
+
+**What's Not Covered:**
+- Initial bug detection (see proactive-bug-hunting)
+- General testing strategies (see qa-testing)
+- Code quality improvements (see qa-test-quality)
+
+**Key Insight:**
+One bug fixed with comprehensive tests prevents many. Document the pattern, and prevent entire classes of bugs from ever appearing.
+
+## The 4-Layer Defense
+
+### Layer 1: Test Defense
+
+**Goal:** Comprehensive test suites that prevent bug re-introduction
+
+#### Edge Case Test Checklist
+
+For any sequential processing code, test:
+
+- [ ] **Empty collection** - No elements at all
+- [ ] **Empty first element** - First element is invalid/empty
+- [ ] **Multiple empty first** - Several empty before valid
+- [ ] **Empty in middle** - Valid, empty, valid pattern
+- [ ] **Empty at end** - Valid elements followed by empty
+- [ ] **All empty** - Every element is empty/invalid
+- [ ] **Single valid** - Only one valid element
+- [ ] **Normal case** - All elements valid (baseline)
+
+#### Test Organization
+
+Use nested test classes for clarity:
+
+```java
+@DisplayName("Bounding Box Calculation")
+class BoundingBoxCalculation {
+
+    @Nested
+    @DisplayName("Normal Scenarios")
+    class NormalScenarios {
+        // Basic functionality tests
+    }
+
+    @Nested
+    @DisplayName("Empty Element Scenarios - Bug Prevention")
+    class EmptyElementScenarios {
+        @Test
+        @DisplayName("REGRESSION: Should not include origin when first empty")
+        void shouldNotIncludeOriginWhenFirstEmpty() {
+            // Specific regression test
+        }
+        // More edge cases...
+    }
+
+    @Nested
+    @DisplayName("Real-World Scenarios")
+    class RealWorldScenarios {
+        // Production use cases
+    }
+}
+```
+
+#### Regression Test Naming
+
+Make regression tests obvious:
+
+```java
+// ✅ GOOD: Clear regression indicator
+@Test
+@DisplayName("REGRESSION #206: Should not include origin when first layer empty")
+void shouldNotIncludeOriginWhenFirstLayerEmpty() { }
+
+@Test
+@DisplayName("BUG PREVENTION: Should skip empty features in union")
+void shouldSkipEmptyFeaturesInUnion() { }
+
+// ❌ BAD: Doesn't indicate this prevents regression
+@Test
+void testBoundingBox() { }
+```
+
+### Layer 2: Pattern Defense
+
+**Goal:** Document bug patterns to prevent similar issues
+
+#### Pattern Documentation
+
+When you fix a bug:
+
+1. **Identify the Pattern**
+   - What was the root cause?
+   - Is this pattern elsewhere in the code?
+   - Can we generalize the pattern?
+
+2. **Document the Pattern**
+   - Create or update pattern skills
+   - Add real-world examples
+   - Provide detection strategies
+   - Include prevention patterns
+
+3. **Search for Similar Bugs**
+   - Use automated searches
+   - Review high-risk areas
+   - Fix proactively
+
+**Example: Sequential Initialization Pattern**
+
+From lib-pcb:
+- **Pattern:** Initialize from first element without validation
+- **Instances:** 3 bugs found (all at different abstraction levels)
+- **Skill:** sequential-init-bugs documents pattern
+- **Prevention:** 48 tests prevent regression
+
+#### Pattern Skill Structure
+
+```markdown
+# [Pattern Name]
+
+## Real-World Examples
+- Example 1: [Bug] - [Context]
+- Example 2: [Bug] - [Context]
+- Example 3: [Bug] - [Context]
+
+## Common Manifestations
+- Pattern 1: [Code pattern]
+- Pattern 2: [Code pattern]
+- Pattern 3: [Code pattern]
+
+## Detection Strategies
+- Automated search commands
+- Code review checklist
+- Testing approach
+
+## Prevention Patterns
+- Pattern 1: [Safe alternative]
+- Pattern 2: [Safe alternative]
+```
+
+### Layer 3: Process Defense
+
+**Goal:** Systematic reviews catch regressions before merge
+
+#### Code Review Checklist
+
+**For Bug Fixes:**
+- [ ] Tests demonstrate bug exists (RED phase)
+- [ ] Tests pass after fix (GREEN phase)
+- [ ] Full test suite passes (no new regressions)
+- [ ] Edge cases comprehensively tested
+- [ ] Pattern documented if applicable
+- [ ] Similar code reviewed for same bug
+
+**For New Features:**
+- [ ] Edge cases identified and tested
+- [ ] Known bug patterns avoided
+- [ ] Existing regression tests still pass
+- [ ] New code follows safe patterns
+
+**For Refactoring:**
+- [ ] All existing tests still pass
+- [ ] Behavior unchanged (proven by tests)
+- [ ] No removal of regression tests
+- [ ] Safe patterns maintained
+
+#### Pre-Commit Validation
+
+Run before every commit:
+
+```bash
+# All tests must pass
+mvn test
+
+# Check for common patterns (if linting available)
+mvn checkstyle:check
+
+# Review changed files
+git diff --cached
+```
+
+#### Pre-PR Validation
+
+Before creating PR:
+
+```bash
+# Full clean build
+mvn clean install
+
+# All tests pass
+mvn test
+
+# No regressions in integration tests
+mvn verify
+
+# Coverage maintained or improved
+mvn jacoco:report
+```
+
+### Layer 4: Automation Defense
+
+**Goal:** Tools enforce prevention automatically
+
+#### Automated Testing
+
+**CI/CD Integration:**
+```yaml
+# GitHub Actions example
+- name: Run Tests
+  run: mvn test
+
+- name: Fail on Regression
+  run: |
+    if [ $? -ne 0 ]; then
+      echo "Tests failed - blocking merge"
+      exit 1
+    fi
+```
+
+**Test Coverage Tracking:**
+```bash
+# Ensure coverage doesn't decrease
+mvn jacoco:check
+```
+
+#### Linting Rules
+
+**Custom Checkstyle Rules:**
+
+```xml
+<!-- Prevent sequential initialization pattern -->
+<module name="RegexpSinglelineJava">
+  <property name="format" value="\.get\(0\).*for.*i\s*=\s*1"/>
+  <property name="message"
+    value="Sequential initialization from first element - use null init pattern"/>
+</module>
+```
+
+#### IDE Inspections
+
+**IntelliJ IDEA Custom Inspection:**
+
+Pattern: `.get(0)` followed by loop
+Severity: Warning
+Message: "Consider null initialization to handle empty first element"
+
+#### Pre-commit Hooks
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+# Run tests on changed files
+mvn test -Dtest="$(git diff --cached --name-only | grep Test.java)"
+
+# Check for bug patterns
+git diff --cached | grep -E "\.get\(0\)" && \
+  echo "WARNING: Sequential initialization pattern detected"
+```
+
+## Real-World Examples from lib-pcb
+
+### Example 1: Issue #206 (PCBDesign)
+
+**Bug:** Empty layers caused invalid bounding box
+**Pattern:** Sequential initialization from first layer
+**Prevention:**
+- ✅ 14 comprehensive tests (5 for empty layers)
+- ✅ Pattern documented in sequential-init-bugs skill
+- ✅ Used TDD approach (RED → GREEN → VERIFY)
+- ✅ Code review caught similar pattern in Layer.java
+
+**Result:** Same bug found at layer level proactively
+
+### Example 2: Issue #204 (File Resolution)
+
+**Bug:** First strategy failed in ZIP filesystems
+**Pattern:** Single strategy without fallbacks
+**Prevention:**
+- ✅ 28 comprehensive tests (multi-strategy scenarios)
+- ✅ Skills created: rs274d-preprocessing, zip-filesystem-quirks
+- ✅ Battle tested against 191 real-world files
+- ✅ Integration tests prevent regression
+
+**Result:** ZIP filesystem issues never recurred
+
+### Example 3: Layer Bug (Proactive Discovery)
+
+**Bug:** Empty features caused invalid layer bounds
+**Pattern:** Same as #206, different abstraction level
+**Prevention:**
+- ✅ 6 comprehensive tests (empty feature scenarios)
+- ✅ Found via proactive bug hunt (Task #28)
+- ✅ Fixed before reaching production
+- ✅ Added to sequential-init-bugs skill
+
+**Result:** Pattern recognition prevented production bug
+
+## Comprehensive Testing Strategies
+
+### Test Categories
+
+Organize tests into categories:
+
+**1. Happy Path Tests**
+- Normal operation
+- Common use cases
+- Expected inputs
+
+**2. Edge Case Tests**
+- Empty collections
+- Boundary values
+- Invalid inputs
+- Null values
+
+**3. Regression Tests**
+- Tests for specific bugs
+- Known failure modes
+- Production issues
+
+**4. Integration Tests**
+- Real-world scenarios
+- End-to-end flows
+- Production data
+
+### Test Coverage Goals
+
+**Minimum Coverage:**
+- Statement coverage: 80%
+- Branch coverage: 70%
+- Critical paths: 100%
+
+**Focus Areas:**
+- Recent bug fixes: 100%
+- Core algorithms: 95%+
+- Edge cases: Comprehensive
+- Regressions: All covered
+
+### Test Data Strategy
+
+**Use Realistic Data:**
+```java
+// ❌ BAD: Unrealistic test data
+@Test
+void testCalculation() {
+    List<Integer> values = List.of(1, 2, 3);
+    // ...
+}
+
+// ✅ GOOD: Real-world dimensions
+@Test
+void shouldCalculateBoundsForTypicalBoard() {
+    // 174.9mm × 96.6mm board (from real German package)
+    Layer layer = createLayerWithFeatures(
+        99_999_999,  // west (100mm)
+        49_999_999,  // south (50mm)
+        175_002_000, // east (175mm)
+        100_001_000  // north (100mm)
+    );
+    // ...
+}
+```
+
+**Test Production Scenarios:**
+```java
+@Test
+void shouldHandleGermanPackageFromIssue204() {
+    // Actual file that caused bug
+    // 6 copper + 2 empty layers
+    // Validates fix works for real data
+}
+```
+
+## Preventing Specific Bug Classes
+
+### Class 1: Sequential Initialization Bugs
+
+**Pattern:** Initialize from first without validation
+
+**Prevention:**
+```java
+// ❌ RISKY
+Result result = items.get(0).calculate();
+for (int i = 1; i < items.size(); i++) {
+    result = result.merge(items.get(i).calculate());
+}
+
+// ✅ SAFE
+Result result = null;
+for (Item item : items) {
+    Result itemResult = item.calculate();
+    if (isInvalid(itemResult)) continue;
+    result = (result == null) ? itemResult : result.merge(itemResult);
+}
+```
+
+**Tests Required:**
+- Empty collection
+- Empty first element
+- Multiple empty before valid
+- All empty
+
+### Class 2: First Strategy Without Fallback
+
+**Pattern:** Try once, give up if fails
+
+**Prevention:**
+```java
+// ❌ RISKY
+Path file = tryStrategy1();
+if (file == null) return null;
+
+// ✅ SAFE
+Path file = tryStrategy1();
+if (file != null) return file;
+
+file = tryStrategy2();
+if (file != null) return file;
+
+return tryStrategy3(); // Last resort
+```
+
+**Tests Required:**
+- Each strategy succeeds alone
+- Each strategy fails, next succeeds
+- All strategies fail
+- First strategy works (fast path)
+
+### Class 3: Missing Null/Empty Checks
+
+**Pattern:** Assume data is valid
+
+**Prevention:**
+```java
+// ❌ RISKY
+public BoundBox calculate(List<Feature> features) {
+    return features.stream()
+        .map(Feature::getBounds)
+        .reduce(BoundBox::union)
+        .get(); // Throws if empty!
+}
+
+// ✅ SAFE
+public BoundBox calculate(List<Feature> features) {
+    return features.stream()
+        .map(Feature::getBounds)
+        .filter(box -> !isEmptyBoundBox(box))
+        .reduce(BoundBox::union)
+        .orElse(BoundBox.empty()); // Safe default
+}
+```
+
+**Tests Required:**
+- Null input
+- Empty collection
+- Collection with nulls
+- Collection with empty elements
+
+## Metrics and Tracking
+
+### Track Regression Rate
+
+```markdown
+## Regression Metrics
+
+**Period:** Q1 2026
+**Total Bugs Fixed:** 12
+**Bugs That Regressed:** 0
+**Regression Rate:** 0% ✅
+
+**Bugs with Comprehensive Tests:** 12/12 (100%)
+**Patterns Documented:** 3
+**Proactive Bugs Found:** 1
+```
+
+### Test Suite Health
+
+```markdown
+## Test Suite Metrics
+
+**Total Tests:** 9,924
+**Passing:** 9,924 (100%)
+**Skipped:** 28
+**Avg Execution Time:** 93 seconds
+
+**Coverage:**
+- Statement: 85%
+- Branch: 78%
+- Critical Paths: 100%
+
+**Regression Tests:** 48
+**Bug Prevention Tests:** 68
+```
+
+### Pattern Detection Success
+
+```markdown
+## Pattern Detection (Task #28)
+
+**Files Reviewed:** 33
+**Bugs Found:** 1
+**Safe Cases:** 32
+**False Positives:** 0
+
+**Success Rate:** 100% (1 real bug found)
+**Time Investment:** 2 hours
+**Bugs Prevented:** 1 production issue
+```
+
+## Best Practices
+
+### Do's
+
+**DO - Test First:**
+- Write failing test (RED)
+- Fix implementation (GREEN)
+- Verify no regressions (VERIFY)
+
+**DO - Document Patterns:**
+- Create/update pattern skills
+- Cross-reference related bugs
+- Share with team
+
+**DO - Review Systematically:**
+- Use checklists
+- Search for similar bugs
+- Fix proactively when found
+
+**DO - Automate:**
+- CI/CD runs all tests
+- Pre-commit hooks
+- Linting rules for patterns
+
+### Don'ts
+
+**DON'T - Skip Tests:**
+- Every bug needs tests
+- Tests prove bug exists
+- Tests prevent recurrence
+
+**DON'T - Ignore Patterns:**
+- One bug means more exist
+- Document and search
+- Fix proactively
+
+**DON'T - Rush Fixes:**
+- Use TDD approach
+- Write comprehensive tests
+- Review for similar bugs
+
+**DON'T - Delete Regression Tests:**
+- Keep forever
+- Document why they exist
+- Update if behavior changes intentionally
+
+## Integration with Development
+
+### Bug Fix Workflow
+
+1. **Understand Bug**
+   - Reproduce issue
+   - Identify root cause
+   - Check for pattern
+
+2. **Write Tests (RED)**
+   - Test demonstrates bug
+   - Cover edge cases
+   - Use realistic data
+
+3. **Fix Implementation (GREEN)**
+   - Minimal change to pass tests
+   - Follow safe patterns
+   - Add code comments
+
+4. **Verify (VERIFY)**
+   - All new tests pass
+   - Full suite passes
+   - No regressions introduced
+
+5. **Document Pattern**
+   - Update pattern skill
+   - Search for similar
+   - Fix proactively
+
+6. **Review**
+   - Code review with checklist
+   - Verify test coverage
+   - Check pattern prevention
+
+### Release Checklist
+
+Before every release:
+
+- [ ] All tests passing (9,924/9,924)
+- [ ] No skipped tests without reason
+- [ ] Coverage maintained or improved
+- [ ] All regression tests passing
+- [ ] Known patterns documented
+- [ ] Proactive bug hunt completed (if applicable)
+- [ ] Integration tests with production data
+- [ ] Performance tests passing
+
+## Tools and Automation
+
+### Maven Configuration
+
+```xml
+<!-- Enforce test execution -->
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <configuration>
+    <failIfNoTests>true</failIfNoTests>
+    <testFailureIgnore>false</testFailureIgnore>
+  </configuration>
+</plugin>
+
+<!-- Track coverage -->
+<plugin>
+  <groupId>org.jacoco</groupId>
+  <artifactId>jacoco-maven-plugin</artifactId>
+  <executions>
+    <execution>
+      <goals>
+        <goal>check</goal>
+      </goals>
+      <configuration>
+        <rules>
+          <rule>
+            <element>BUNDLE</element>
+            <limits>
+              <limit>
+                <counter>LINE</counter>
+                <value>COVEREDRATIO</value>
+                <minimum>0.80</minimum>
+              </limit>
+            </limits>
+          </rule>
+        </rules>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+### CI/CD Configuration
+
+```yaml
+name: Regression Prevention
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+      - name: Run All Tests
+        run: mvn test
+      - name: Check Coverage
+        run: mvn jacoco:check
+      - name: Verify Build
+        run: mvn verify
+```
+
+## Success Stories
+
+### Success 1: Zero Regressions Since v0.80.3
+
+**Period:** v0.80.3 → v0.80.5 (3 releases)
+**Bugs Fixed:** 3 (Issues #204, #206, Layer bug)
+**Regressions:** 0
+**Tests Added:** 48
+**Patterns Documented:** 1 (sequential-init-bugs)
+
+**Key Factors:**
+- TDD approach for all fixes
+- Comprehensive test suites
+- Pattern documentation
+- Proactive bug hunting
+
+### Success 2: Proactive Discovery
+
+**Context:** Task #28 bug hunt
+**Bugs Found:** 1 (Layer.calculateBoundBox)
+**Prevented:** Production issue
+**Time:** 30 minutes to fix (pattern known)
+**Value:** High (prevented customer impact)
+
+**Key Factors:**
+- Pattern recognition from previous bugs
+- Systematic search process
+- TDD approach for fix
+- Documentation updated
+
+## References
+
+- sequential-init-bugs: Pattern that enabled proactive discovery
+- tdd-pcb: Test-driven development approach
+- proactive-bug-hunting: Systematic bug finding process
+- qa-test-quality: Test quality best practices
+- Issue #206: PCBDesign bounding box (14 tests)
+- Issue #204: File resolution (28 tests)
+- Layer bug: Feature bounding box (6 tests)
+
+## Checklist
+
+When fixing a bug:
+- [ ] Write failing test (demonstrates bug)
+- [ ] Fix implementation (minimal change)
+- [ ] All tests pass (no regressions)
+- [ ] Edge cases comprehensively tested
+- [ ] Pattern identified and documented
+- [ ] Similar code reviewed
+- [ ] Skills updated with learnings
+
+When adding feature:
+- [ ] Edge cases identified
+- [ ] Tests written first (TDD)
+- [ ] Known patterns avoided
+- [ ] Code review completed
+- [ ] Documentation updated
+
+When reviewing code:
+- [ ] Tests demonstrate correctness
+- [ ] Edge cases covered
+- [ ] Known patterns avoided
+- [ ] Regression tests maintained
+- [ ] Coverage adequate
+
+## Next Steps
+
+To improve regression prevention:
+
+1. **Expand Test Coverage** - Target 90%+ for critical paths
+2. **Add More Pattern Skills** - Document other common bugs
+3. **Implement Linting Rules** - Automate pattern detection
+4. **Create IDE Inspections** - Real-time pattern warnings
+5. **Regular Bug Hunts** - Schedule proactive reviews

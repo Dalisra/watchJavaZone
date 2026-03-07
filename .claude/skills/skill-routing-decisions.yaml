@@ -1,0 +1,141 @@
+---
+name: skill-routing-decisions
+description: Where skills belong — global vs project vs company. Decision tree, red flags for wrong routing, and a case study from the lib-pcb → lib-pcb-app reorganization.
+tags: [context-engineering, meta, skills]
+status: production-ready
+priority: high
+relatedSkills: [context-engineering-audit, claude-md-guidelines, skill-navigator-pattern]
+---
+
+# Skill Routing Decisions
+
+## The Problem
+
+Skills in the wrong location either:
+- **Load when they shouldn't** (token waste every session, noise in wrong context)
+- **Don't load when needed** (context gap, compilation errors, missed patterns)
+
+## Location Options
+
+| Location | Path | Loads when | Use for |
+|----------|------|-----------|---------|
+| **Global common** | `~/.claude/skills/common/` | Every session | Universal patterns (writing, git, TDD, context engineering) |
+| **Global** | `~/.claude/skills/` | Every session | Company-wide context (auto-loaded business skills, Synthesis context) |
+| **Project** | `[project]/.claude/skills/` | That project only | Project-specific domain knowledge |
+| **Company** | `~/Documents/[Company]/skills/` | Explicitly invoked | Company business knowledge |
+
+## Decision Tree
+
+```
+Is this knowledge specific to one codebase / repo?
+├── YES → Project (.claude/skills/)
+└── NO  → Is it useful across ALL projects (language/framework agnostic)?
+          ├── YES → Common (~/.claude/skills/common/)
+          └── NO  → Is it company-wide business knowledge?
+                    ├── YES → Company (~/Documents/Company/skills/)
+                    └── NO  → Global (~/.claude/skills/)
+                              (used across sessions but not truly universal)
+```
+
+## Routing by Content Type
+
+| Content | Correct location | Reason |
+|---------|-----------------|--------|
+| TDD workflow, git commit patterns | `common/` | Language-agnostic, universal |
+| CLAUDE.md guidelines, context engineering | `common/` | Universal meta-patterns |
+| Gerber format spec | lib-pcb `.claude/skills/` | Library-specific |
+| BOM generation patterns | lib-pcb-app `.claude/skills/` | App-specific |
+| PCB designer persona | lib-pcb-app `.claude/skills/` | App user persona |
+| lib-pcb API reference | lib-pcb-app `.claude/skills/` | Consumed by app devs |
+| Synthesis product context | `~/.claude/skills/` | Auto-loaded everywhere, company-wide |
+| Sales methodology, pipeline | company skills | Business domain |
+| LinkedIn post patterns | `~/.claude/skills/` | Used from any session |
+
+## Red Flags (Wrong Routing)
+
+**Project skill in global** → noise in unrelated sessions
+- Example: `pcb-2d-rendering.yaml` in `~/.claude/skills/` loads during LinkedIn post creation
+
+**Common pattern duplicated in multiple projects** → maintenance burden
+- Example: TDD patterns in lib-pcb, lib-pcb-app, AND Synthesis separately → extract to `common/`
+
+**Generic skill named after a project** → misleading scope
+- Example: `lib-pcb-tdd.yaml` in global — if it's generic TDD → `common/`; if truly PCB-specific → project
+
+**Company context in project skills** → wrong granularity
+- Business pipeline / sales methodology in `.claude/skills/` → move to company or global
+
+**Validation reference in global** that only applies to one library
+- Example: `mif-validation-completeness` in global → belongs in lib-pcb `.claude/skills/`
+
+## Case Study: lib-pcb → lib-pcb-app Routing (Feb 2026)
+
+**Context**: 18 PCB skills were in `~/.claude/skills/` (global). They loaded in every session — during Synthesis work, LinkedIn posts, and business planning. Pure noise.
+
+**Routing decisions:**
+
+| Skill | Decision | Reasoning |
+|-------|----------|-----------|
+| `pcb-2d-rendering.yaml` | → lib-pcb-app | Canvas rendering is web app concern, not library |
+| `pcb-bom-management.yaml` | → lib-pcb-app | App-level BOM feature |
+| `lib-pcb-api-index.yaml` | → lib-pcb-app | Consumed by app devs calling lib-pcb, not lib devs |
+| `lib-pcb-geometry-api.yaml` | → lib-pcb-app | API reference for app integration layer |
+| `pcb-app-testing.yaml` | → lib-pcb-app | App testing patterns, not library |
+| `persona-pcb-designer.yaml` | → lib-pcb-app | Web app user persona |
+| `pcb-completeness-validation.yaml` | deleted | Superseded by `lib-pcb/mif-validation-completeness/` |
+| `pcb-format-conversion.yaml` | deleted | Superseded by 14 specific format skills in lib-pcb |
+| `report-lib-pcb-bug.yaml` | → lib-pcb | Bug reporter for lib-pcb GitHub repo — belongs there |
+
+**Routing principle applied**: Skills about *using* lib-pcb from the web app → lib-pcb-app. Skills about *the library itself* → lib-pcb. Skills superseded by more specific skills → delete.
+
+## Promotion Criteria: Project → Common
+
+A project skill should be promoted to `common/` when:
+- The same pattern has been needed in 2+ different projects
+- The skill is language/framework agnostic
+- It solves a universal problem that any project would face
+
+**Recent promotions** (Feb 18, 2026): 9 lib-pcb skills promoted to `common/`:
+- `fear-driven-development`, `tdd-workflow`, `regression-prevention`, `proactive-bug-hunting`
+- `directed-synthesis`, `docs-organization`, `change-tracking`, `smart-file-matching`, `java-record-breaking-changes`
+
+## Deletion Criteria
+
+Delete a skill when:
+- Content is superseded by a more specific skill (e.g., `pcb-format-conversion` → 14 format skills)
+- Skill duplicates an existing skill with different naming
+- Content belongs in documentation (README, docs/), not a skill at all
+- Skill was session-specific (debugging notes that are now resolved)
+
+## After Re-routing: Update the Index
+
+After moving or deleting skills, update:
+1. `~/.claude/claude.md` — update project entry, skill count, key hub skills listed
+2. `~/.claude/skills/common/README.md` — if common skills changed
+3. Project's skill navigator — if it exists, update file paths listing
+
+## Tool Availability in Spawned Agents
+
+When writing agent prompts (Task tool), CLI tools installed in ~/bin may not be on PATH.
+This causes silent failures — the agent reports "tool not available" and falls back to slower methods.
+
+**Pattern: Always verify and export PATH in agent prompts for custom CLIs:**
+
+```
+Before using any custom CLI tool in an agent:
+  export PATH="$HOME/bin:/home/totto/bin:$PATH"
+  which <tool> && <tool> --version  # verify before use
+```
+
+**Benchmark evidence (Feb 19, 2026):** 4 parallel Opus agents ran with synthesis search.
+- Agents 1 and 3: synthesis on PATH → search worked, 50% fewer tool calls
+- Agents 2 and 4: PATH not inherited → "CLI not available", fell back to Glob/Grep
+
+**General rule for agent prompts:** If the task uses a custom CLI (synthesis, custom scripts, etc.),
+add an explicit PATH export at the top of the prompt. Do not assume the agent inherits the parent's PATH.
+
+## Related Skills
+
+- **context-engineering-audit** — diagnose whether skills are misrouted (the assessment step)
+- **claude-md-guidelines** — CLAUDE.md as hub that references correctly-routed skills
+- **skill-navigator-pattern** — build discovery layer once skills are correctly routed

@@ -1,0 +1,599 @@
+---
+name: proactive-bug-hunting
+description: Systematic approach to finding bugs before they reach production using pattern recognition
+tags: [bugs, proactive, prevention, patterns, quality, testing]
+status: production-ready
+priority: high
+relatedSkills: [sequential-init-bugs, tdd-pcb, qa-test-quality, regression-prevention]
+---
+
+# Proactive Bug Hunting
+
+## When to Use This
+
+Use this skill when:
+
+- **After fixing a production bug** - Find similar bugs proactively
+- **Pattern recognition** - Identified a common bug pattern
+- **Quality improvement** - Systematic codebase review
+- **Before releases** - Proactive bug prevention
+
+You're in the right place if:
+- You've seen the same bug pattern multiple times
+- You want to prevent bugs before they hit production
+- You have time for quality improvements between sprints
+- You want to learn from past bugs
+
+## Quick Start
+
+**5-Step Process:**
+
+1. **Recognize Pattern** - Identify common bug pattern from recent fixes
+2. **Create Search Strategy** - Design automated searches for the pattern
+3. **Review Systematically** - Examine each match for actual bugs
+4. **Fix with TDD** - Write tests first, then fix bugs found
+5. **Document Learnings** - Update skills with findings
+
+## Overview
+
+**What's This About?**
+
+Proactive bug hunting uses pattern recognition from previously fixed bugs to systematically search for similar issues before they hit production.
+
+**What's Covered:**
+- Pattern recognition from past bugs
+- Automated search strategies
+- Systematic review process
+- TDD approach for fixes
+- Case study: Task #28 (found Layer.java bug)
+
+**What's Not Covered:**
+- Random code review
+- General code quality improvements
+- Performance optimization
+- Refactoring strategies
+
+**Key Insight:**
+Bugs often come in patterns. Finding one instance of a pattern means there are likely more. Use systematic searching to find them before customers do.
+
+## The 5-Step Process
+
+### Step 1: Recognize Pattern
+
+**Goal:** Identify a common bug pattern from recent fixes
+
+**How To:**
+1. Review recently fixed production bugs
+2. Look for commonalities in root causes
+3. Abstract the pattern (not just the specific bug)
+4. Check if you have 2+ instances of the pattern
+
+**Example from lib-pcb:**
+- Bug #204: File resolution initialized from first strategy
+- Bug #206: PCBDesign initialized from first layer
+- **Pattern:** Sequential initialization from first element without validation
+
+**Red Flags:**
+- Single instance - might be one-off, not worth hunting
+- Too broad pattern - will find too many false positives
+- Too specific pattern - won't find other instances
+
+**Output:**
+- Clear description of the bug pattern
+- Abstract enough to find variants
+- Specific enough to avoid false positives
+
+### Step 2: Create Search Strategy
+
+**Goal:** Design automated searches to find pattern instances
+
+**Search Techniques:**
+
+#### Technique 1: Text Pattern Matching
+
+```bash
+# Find specific code patterns
+grep -rn "\.get(0)" src/main/java --include="*.java"
+
+# Find pattern with context
+grep -rn "\.get(0)" src/main/java --include="*.java" \
+  -A 10 | grep -B 5 "for.*i = 1"
+
+# Find related operations
+grep -rn "union\|merge\|combine" src/main/java \
+  | grep -B 5 "\.get(0)"
+```
+
+#### Technique 2: Structure-Based Search
+
+Look for structural patterns:
+- Method signatures
+- Loop patterns
+- Conditional patterns
+- Error handling patterns
+
+#### Technique 3: Domain-Specific Search
+
+Focus on specific areas:
+- Model classes with calculation methods
+- Converter classes processing sequential data
+- Validator classes checking multiple items
+- Importer/Exporter classes
+
+**Priority Areas:**
+
+Rank files by risk:
+1. **High Risk:** Core model classes, calculations, data processing
+2. **Medium Risk:** Utilities, helpers, converters
+3. **Low Risk:** Tests, documentation, configuration
+
+**Output:**
+- List of files/locations to review
+- Automated search commands
+- Prioritized review order
+
+### Step 3: Review Systematically
+
+**Goal:** Examine each match to identify actual bugs
+
+**Review Checklist:**
+
+For each match, ask:
+1. ✅ **Does it have the pattern?** (e.g., `.get(0)` followed by loop from 1)
+2. ✅ **Is first element validated?** (size check, null check, empty check)
+3. ✅ **What if first element is invalid?** (empty, null, zero, default value)
+4. ✅ **Are there fallbacks?** (multi-strategy, alternative paths)
+5. ✅ **Is it tested?** (edge case tests, empty first element)
+
+**Classification:**
+
+**BUG:** Pattern exists, no validation, can fail
+- Action: Fix with TDD approach
+- Priority: High
+
+**SAFE:** Pattern exists but has proper validation
+- Action: Document why it's safe
+- Priority: Low (maybe add test anyway)
+
+**FALSE POSITIVE:** Looks like pattern but isn't
+- Action: Note why and move on
+- Priority: None
+
+**Example from Task #28:**
+
+```java
+// FOUND: Layer.java:129-130
+BoundBox result = allFeatures.get(0).getBoundBox();
+for (int i = 1; i < allFeatures.size(); i++) {
+    result = result.union(allFeatures.get(i).getBoundBox());
+}
+
+// ANALYSIS:
+// ✅ Has pattern: get(0) followed by loop from 1
+// ❌ No validation: First feature could be empty
+// ❌ No test: No tests for empty first feature
+// VERDICT: BUG - needs fix
+```
+
+**Output:**
+- List of confirmed bugs
+- List of safe cases (with reasoning)
+- List of false positives (with reasoning)
+
+### Step 4: Fix with TDD
+
+**Goal:** Fix bugs using test-driven approach
+
+**TDD Cycle:**
+
+**RED - Write Failing Tests:**
+```java
+@Test
+void shouldNotIncludeOriginWhenFirstFeatureEmpty() {
+    // Arrange: Create scenario with empty first feature
+    // Act: Calculate bounding box
+    // Assert: Should NOT include origin from empty feature
+}
+```
+
+**GREEN - Fix Implementation:**
+```java
+// Skip empty elements, initialize from first valid
+BoundBox result = null;
+for (Feature feature : allFeatures) {
+    if (isEmpty(feature)) continue;
+    result = (result == null) ? feature.getBounds() : result.union(feature.getBounds());
+}
+```
+
+**VERIFY - Run Full Suite:**
+```bash
+mvn test  # All tests should pass
+```
+
+**Why TDD for Bug Hunting:**
+- Proves the bug exists (RED phase)
+- Ensures fix works (GREEN phase)
+- Prevents regression (tests remain)
+- Documents edge cases
+
+**Output:**
+- Failing tests demonstrating bugs
+- Fixed implementation
+- All tests passing
+- Comprehensive test coverage
+
+### Step 5: Document Learnings
+
+**Goal:** Update skills and share knowledge
+
+**Documentation Updates:**
+
+1. **Update Pattern Skill** (e.g., sequential-init-bugs)
+   - Add new bug instance to examples
+   - Update metrics (bugs found, files reviewed)
+   - Add references to fixes
+
+2. **Update Related Skills** (e.g., tdd-pcb)
+   - Add case study if significant
+   - Cross-reference to pattern skill
+
+3. **Create New Skills** (if needed)
+   - Document new patterns discovered
+   - Share systematic approaches
+
+4. **Update Codebase Docs**
+   - Add comments explaining why pattern is safe
+   - Document edge cases in code
+   - Update architecture docs if pattern is common
+
+**Output:**
+- Updated skills with new learnings
+- Better documented codebase
+- Shared knowledge for team
+
+## Case Study: Task #28
+
+### Background
+
+**Pattern Identified:** Sequential initialization from first element
+- Source: Issue #204 (file resolution) + Issue #206 (PCBDesign bounding box)
+- Both bugs had same root cause pattern
+- Created sequential-init-bugs skill to document pattern
+
+### Search Strategy
+
+**Command:**
+```bash
+grep -rn "\.get(0)" src/main/java --include="*.java" -A 10 \
+  | grep -B 5 "for.*i = 1\|union\|merge\|combine"
+```
+
+**Results:**
+- 33 files with `.get(0)` pattern found
+- Prioritized model classes and converters
+
+### Systematic Review
+
+**Priority Files Reviewed:**
+
+**High Priority:**
+1. Polygon.java - SAFE (comparing first/last point)
+2. StackupDef.java - SAFE (validation before use)
+3. Layer.java - **BUG FOUND!**
+4. StackupList.java - SAFE (empty check)
+5. ConnectivityGraph.java - SAFE (size check)
+
+**Bug Found:**
+```java
+// Layer.java:129-130 - CONFIRMED BUG
+BoundBox result = allFeatures.get(0).getBoundBox();
+for (int i = 1; i < allFeatures.size(); i++) {
+    result = result.union(allFeatures.get(i).getBoundBox());
+}
+```
+
+**Analysis:**
+- Same pattern as Issue #206 (different abstraction level)
+- No validation for empty first feature
+- No tests for this edge case
+- High impact - layer bounds critical for visualization
+
+### TDD Fix
+
+**RED Phase:**
+- Added 6 comprehensive tests
+- 4 tests failed, demonstrating bug
+- Tests covered: empty first, multiple empty, empty in middle, all empty
+
+**GREEN Phase:**
+- Fixed Layer.calculateBoundBox() to skip empty features
+- Added isEmptyBoundBox() helper
+- All 65 Layer tests pass
+
+**VERIFY Phase:**
+- All 9924 tests pass
+- No regressions
+- Complete test coverage for edge cases
+
+### Results
+
+**Bugs Found:** 1 (Layer.java)
+**Safe Cases:** 32 (proper validation)
+**Fix Time:** 30 minutes (TDD approach)
+**Tests Added:** 6 comprehensive tests
+**Value:** Found bug **before** production
+
+### Learnings
+
+**What Worked:**
+- Pattern from 2 bugs was enough to justify hunt
+- Automated search found all instances quickly
+- Systematic review separated bugs from safe code
+- TDD proved bug existed and fix worked
+
+**What to Improve:**
+- Could automate classification (linting rule)
+- Could add IDE inspections for pattern
+- Could create pre-commit hooks
+
+## Search Patterns Library
+
+### Pattern 1: Sequential Initialization
+
+**Description:** Initializing from first element without validation
+
+**Search:**
+```bash
+# Primary search
+grep -rn "\.get(0)" src/main/java --include="*.java" \
+  -A 10 | grep -B 5 "for.*i = 1"
+
+# Related operations
+grep -rn "union\|merge\|combine" src/main/java \
+  | grep -B 5 "\.get(0)"
+```
+
+**Red Flags:**
+- `result = list.get(0)` followed by loop from index 1
+- No empty/null check before `.get(0)`
+- Union/merge operations from first element
+
+### Pattern 2: First Strategy Without Fallback
+
+**Description:** Trying one approach and giving up if it fails
+
+**Search:**
+```bash
+# Find early returns without alternatives
+grep -rn "return null" src/main/java --include="*.java" \
+  -B 5 | grep "if.*first\|if.*try"
+
+# Find single-strategy approaches
+grep -rn "resolve\|find\|locate" src/main/java \
+  -A 3 | grep "return"
+```
+
+**Red Flags:**
+- Single attempt followed by return null
+- No fallback strategies
+- No error handling alternatives
+
+### Pattern 3: Missing Empty Collection Check
+
+**Description:** Processing collections without checking if empty
+
+**Search:**
+```bash
+# Find collection processing without size check
+grep -rn "for.*:" src/main/java --include="*.java" \
+  -B 3 | grep -v "isEmpty\|size()"
+
+# Find stream operations without empty handling
+grep -rn "\.stream()" src/main/java \
+  | grep -v "orElse\|Optional"
+```
+
+**Red Flags:**
+- Loop over collection without size check
+- Stream without orElse/Optional
+- No empty collection handling
+
+## Best Practices
+
+### Do's
+
+**DO - Start Small:**
+- Pick specific, well-understood pattern
+- Start with 2-3 confirmed instances
+- Expand search if pattern proves valuable
+
+**DO - Prioritize:**
+- Review high-risk files first
+- Focus on core functionality
+- Skip low-risk areas initially
+
+**DO - Use TDD:**
+- Write tests before fixing
+- Prove bug exists
+- Ensure fix works
+- Prevent regression
+
+**DO - Document:**
+- Update skills with findings
+- Share knowledge with team
+- Create reference material
+
+**DO - Track Metrics:**
+- Files reviewed
+- Bugs found
+- Safe cases identified
+- Time invested
+
+### Don'ts
+
+**DON'T - Hunt Without Pattern:**
+- Need 2+ instances to justify hunt
+- Random code review is different activity
+- Pattern should be clear and specific
+
+**DON'T - Fix Without Tests:**
+- Always write tests first
+- Prove bug exists before fixing
+- Tests document edge cases
+
+**DON'T - Ignore Safe Cases:**
+- Document why they're safe
+- Consider adding tests anyway
+- Learn from good patterns too
+
+**DON'T - Forget to Share:**
+- Update skills
+- Document in code
+- Share with team
+
+## Metrics Template
+
+Track progress and results:
+
+```markdown
+## Bug Hunt: [Pattern Name]
+
+**Pattern Source:** [Previous bugs that showed this pattern]
+**Date:** [When you did the hunt]
+**Time Invested:** [Hours spent]
+
+### Search Results
+- Files with pattern: X
+- High priority files: Y
+- Files reviewed: Z
+
+### Findings
+- Bugs found: A
+- Safe cases: B
+- False positives: C
+
+### Fixes
+- Tests added: D
+- Lines changed: E
+- PRs created: F
+
+### Value
+- Bugs prevented: [Before production]
+- Test coverage improved: [Percentage]
+- Knowledge shared: [Skills updated]
+```
+
+## Integration with Development
+
+### When to Bug Hunt
+
+**Good Times:**
+- After fixing production bug (pattern fresh in mind)
+- Between sprints (dedicated quality time)
+- Before major releases (extra caution)
+- During slow periods (proactive improvement)
+
+**Bad Times:**
+- During feature crunch (not urgent)
+- Without clear pattern (too speculative)
+- When team is too small (opportunity cost high)
+
+### Making It Sustainable
+
+**Timebox It:**
+- Set maximum time (e.g., 2 hours)
+- Review high-priority files first
+- Stop when time runs out
+- Document progress for next session
+
+**Share the Load:**
+- Different team members hunt different patterns
+- Rotate responsibility
+- Share findings in team meetings
+- Build collective knowledge
+
+**Automate When Possible:**
+- Create linting rules for common patterns
+- Add IDE inspections
+- Set up pre-commit hooks
+- Build knowledge into tools
+
+## Success Criteria
+
+A successful bug hunt should:
+
+**Find Real Bugs:**
+- At least 1 confirmed bug found
+- OR confirmation that pattern is rare
+- OR validation that safe cases are safe
+
+**Improve Quality:**
+- Add comprehensive tests
+- Fix bugs before production
+- Document patterns clearly
+
+**Share Knowledge:**
+- Update skills with learnings
+- Document in code
+- Share with team
+
+**Be Efficient:**
+- Time invested proportional to bugs found
+- Focus on high-value areas
+- Stop when diminishing returns
+
+## Related Patterns
+
+### From Sequential-Init-Bugs Skill
+
+**Pattern:** Initialize from first element without validation
+**Instances Found:** 3 (all fixed)
+**Success Rate:** 100% (proactive hunt found 1 before production)
+
+### From Other Skills
+
+**TDD Patterns:** Write tests first for any bug
+**Regression Prevention:** Comprehensive test suites
+**Quality Improvement:** Systematic review processes
+
+## Next Steps
+
+After completing a bug hunt:
+
+1. **Create PR** - For any bugs found and fixed
+2. **Update Skills** - Add findings to pattern skills
+3. **Share Learnings** - Team meeting or documentation
+4. **Consider Automation** - Can this be automated?
+5. **Plan Next Hunt** - When should you hunt again?
+
+## References
+
+- Task #28: Proactive bug hunt (found Layer.java bug)
+- sequential-init-bugs: Pattern that enabled Task #28
+- tdd-pcb: TDD approach for fixes
+- PR #209: Layer bug fix (proactive discovery)
+
+## Checklist
+
+Before starting a bug hunt:
+- [ ] Have 2+ instances of the pattern
+- [ ] Pattern is clear and specific
+- [ ] Created automated search commands
+- [ ] Prioritized files to review
+- [ ] Allocated dedicated time
+- [ ] Ready to use TDD for fixes
+
+During the hunt:
+- [ ] Review systematically (not randomly)
+- [ ] Classify each match (bug/safe/false positive)
+- [ ] Document reasoning for classifications
+- [ ] Fix bugs with TDD approach
+- [ ] Track metrics
+
+After the hunt:
+- [ ] All bugs fixed with tests
+- [ ] Skills updated with learnings
+- [ ] Knowledge shared with team
+- [ ] Consider automation opportunities
+- [ ] Plan next hunt (if pattern continues)

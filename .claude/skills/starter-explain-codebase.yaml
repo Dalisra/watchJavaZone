@@ -1,0 +1,98 @@
+name: starter-explain-codebase
+description: Systematically understand unfamiliar code using AI. Zoom from architecture to module to function, building a mental model before making changes.
+version: 1.0.0
+
+instructions: |
+  # Explain Codebase
+
+  ## When to Use This
+
+  Use this skill when:
+  - Working with a codebase you didn't write
+  - Returning to code you haven't touched in months
+  - Onboarding onto a new project
+  - Trying to understand a complex module before changing it
+  - Need to explain the system to someone else
+
+  ## The Zoom Pattern
+
+  Always go from wide to narrow. Never start by reading individual functions.
+
+  ### Zoom Level 1: Architecture (start here)
+
+  Ask Claude:
+  > "Read CLAUDE.md and the top-level directory structure.
+  > Give me a 5-sentence architecture overview:
+  > what does this system do, how is it structured, what are the key modules?"
+
+  Verify: Does Claude's summary match your understanding? If not, where does it diverge?
+
+  ### Zoom Level 2: Module
+
+  Pick the module most relevant to your task. Ask:
+  > "Explain the [ModuleName] module. What is its responsibility?
+  > What are its main classes? What does it depend on? What depends on it?"
+
+  Verify: Read the actual class list. Does it match?
+
+  ### Zoom Level 3: Function / Method
+
+  Now you can go deep. Ask:
+  > "Explain what [MethodName] does step by step.
+  > What are the inputs, what are the side effects, what does it return?
+  > What are the edge cases it handles?"
+
+  Verify: Read the actual implementation. Catch any hallucinations.
+
+  ## Key Questions to Ask
+
+  **Data flow:**
+  > "How does data flow from [entry point] to [output]? Show the chain of method calls."
+
+  **Dependencies:**
+  > "What would break if I change [ClassName]? What does it depend on?"
+
+  **Patterns:**
+  > "What design patterns does this codebase use? Give me 3 examples."
+
+  **History:**
+  > "What do the recent commit messages tell us about how this code has been evolving?"
+
+  **Tests:**
+  > "What does the test suite tell us about the intended behavior of [module]?
+  > What is NOT tested?"
+
+  ## Building a Mental Model
+
+  As you zoom in, build a simple mental map:
+
+  ```
+  System: [one sentence]
+  Entry points: [list 2-3]
+  Key modules: [list with one-sentence purpose each]
+  Data model: [key entities and their relationships]
+  External dependencies: [databases, APIs, queues]
+  Known pain points: [from commit history or TODO comments]
+  ```
+
+  Write this down. It becomes the first version of your CLAUDE.md.
+
+  ## Trust But Verify
+
+  Claude's explanation of code it hasn't been trained on can hallucinate:
+  - Class names that don't exist
+  - Method signatures that are slightly wrong
+  - Relationships between classes that aren't real
+
+  **Always verify** Claude's explanation against the actual code before acting on it.
+  Use: "Show me the actual code for what you just described."
+
+  ## When to Stop Explaining and Start Changing
+
+  You're ready to make changes when:
+  - You can describe what you're changing in one sentence
+  - You know which tests cover the code you're changing
+  - You've read (not just heard Claude describe) the method you're modifying
+  - You know what other code will be affected
+
+tags: [understanding, onboarding, codebase, exploration]

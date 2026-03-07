@@ -1,0 +1,152 @@
+---
+name: claude-md-guidelines
+description: Rules for writing CLAUDE.md as a navigation hub, not a knowledge base. What stays in, what comes out, target line counts, and section templates.
+tags: [context-engineering, documentation, claude-md, meta]
+status: production-ready
+priority: high
+relatedSkills: [context-engineering-audit, skill-navigator-pattern, docs-organization]
+---
+
+# CLAUDE.md Guidelines
+
+## Core Philosophy
+
+**CLAUDE.md is a navigation hub, not a knowledge base.**
+
+Every line in CLAUDE.md loads into every AI session for that project. Bloated CLAUDE.md = wasted tokens every session + real signal diluted by stale noise.
+
+**The test**: If the content answers "how exactly do I do X?", it belongs in a skill or doc. If it answers "what is this project?" or "where do I start?", it stays.
+
+## Target Sizes
+
+| Project Type | Target | Max |
+|-------------|--------|-----|
+| Library / utility | ~150 lines | 200 |
+| Web application | ~150–200 lines | 250 |
+| Large multi-module platform | ~200 lines | 300 |
+| Root workspace (e.g. `~/Documents`) | ~250 lines | 400 |
+
+## What MUST Be in CLAUDE.md
+
+1. **Project overview** (2–3 sentences): what it is, what it does, key tech
+2. **Quick-start commands** (5–10 lines): `mvn spring-boot:run`, `cd frontend && npm run serve`
+3. **Skills pointer** + compact table: "Start with `skill-navigator`" and a short category index
+4. **Critical gotchas** (5–10 bullets): SNAPSHOT policy, nm coordinates, known footguns
+5. **Compact project structure**: key directories and files — not exhaustive
+6. **Build commands**: test, package, install
+7. **Links to hubs**: `docs/README.md`, `scripts/README.md`, `CHANGELOG.md`
+
+## What Must NOT Be in CLAUDE.md
+
+| Content | Where it belongs |
+|---------|-----------------|
+| Full REST API tables (10+ endpoints) | OpenAPI spec, README, or skill |
+| Script usage details (flags, examples, "when to use") | `scripts/README.md` |
+| Detailed code examples | Relevant skill |
+| Validation system quick reference | Validation skills |
+| Session learnings / debugging notes | Skills |
+| "Recently Completed ✅" / status sections | `CHANGELOG.md` |
+| Planned work / roadmap | `docs/implementation/plans/` |
+| MIF / data model hierarchies | Format skills |
+| Documentation cross-reference tables (50+ lines) | `docs/README.md` |
+| Coding conventions (when style guides exist) | Link to style guide |
+
+## Section Template
+
+```markdown
+# Claude Code Project Context: [Name]
+
+[2–3 sentence overview. What it is, what it does, what library/tech powers it.]
+
+## What This [App/Library] Does
+
+1. **[Verb]** [brief description]
+...
+
+## Technology Stack
+
+- **[Category]**: [Technology]
+
+## Skills
+
+**Start here**: `.claude/skills/skill-navigator/SKILL.md` — finds the right skill for any task
+
+| Category | Skills |
+|----------|--------|
+| **[Category]** | `skill-1`, `skill-2` |
+
+**For [related project] skills**: See `[path]/.claude/skills/`
+
+## Project Structure
+
+```
+[compact tree — main dirs only, 10–15 lines max]
+```
+
+## Quick Start
+
+```bash
+# [4–8 key commands]
+```
+
+## Critical Gotchas
+
+- **[Short title]**: [Rule]
+
+## Documentation Navigation
+
+- **Main hub**: `docs/README.md`
+- **[Critical file]**: `docs/.../[file].md`
+- **History**: `CHANGELOG.md`
+```
+
+## Common Mistakes
+
+**Embedding the skills table inline** instead of pointing to `skill-navigator`
+→ Result: CLAUDE.md grows by 20 lines every time a skill is added.
+
+**Adding a full endpoint table "for convenience"**
+→ Result: 25 endpoints × 3 columns × 2 lines = 75 lines loading every session.
+
+**Adding "Recently Completed ✅" sections**
+→ This is CHANGELOG content. Nobody reads historical context from CLAUDE.md.
+
+**Copying the full MIF hierarchy from the lib-pcb docs**
+→ It's in lib-pcb skills. Duplication that goes stale.
+
+**Repeating the project structure from README.md**
+→ Keep structure in CLAUDE.md compact (10–15 lines); README can be exhaustive.
+
+## Real Examples
+
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| `lib-pcb-app/CLAUDE.md` | 623 lines | 129 lines | 79% |
+| `lib-pcb/CLAUDE.md` | (new) | 156 lines | Created correctly |
+
+**lib-pcb-app**: Removed REST API table (25 endpoints), scripts detail (80+ lines), MIF hierarchy, validation quick reference, session learnings, project status, documentation cross-references.
+
+**What survived the cut**: Architecture diagram, tech stack, skill navigator pointer + category table, compact structure, quick-start commands, scripts table (names + one-line purpose), 5 critical gotchas, job state machine (6 lines), coding conventions (6 lines), docs hub links.
+
+## Updating CLAUDE.md
+
+**Add content when**:
+- A new critical gotcha is discovered that saves hours
+- A new hub skill or skill category is added
+- A key command changes
+
+**Remove content when**:
+- Something is moving to a skill or doc
+- A status section is getting stale
+- Line count exceeds the target for project type
+
+**Never add**:
+- Detailed "how to" content — that's what skills are for
+- Historical context — that's what CHANGELOG and git history are for
+
+## Related Skills
+
+- **context-engineering-audit** — assess current CLAUDE.md health before editing
+- **skill-navigator-pattern** — create the navigator CLAUDE.md points to
+- **docs-organization** — organize docs/ that CLAUDE.md links to
+- **skill-routing-decisions** — decide which skills to list in CLAUDE.md

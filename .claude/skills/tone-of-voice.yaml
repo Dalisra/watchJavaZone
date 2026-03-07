@@ -1,0 +1,89 @@
+name: tone-of-voice
+description: Professional writing tone and communication style for all eXOReaction and related company communications
+version: 1.0.0
+type: style-guide
+
+guidelines:
+  core_principles:
+    - Professional, clear, and concise communication
+    - Technical accuracy over marketing hyperbole
+    - Conservative claims backed by evidence
+    - Respectful objectivity over emotional validation
+    - Facts and problem-solving focus
+
+  writing_style:
+    - Use active voice and direct language
+    - Avoid superlatives and excessive praise
+    - Prefer specific data over vague claims
+    - Write for understanding, not impressiveness
+    - Keep sentences short and scannable
+
+  tone_characteristics:
+    - Confident but not arrogant
+    - Enthusiastic but grounded
+    - Helpful without being condescending
+    - Technical without being obtuse
+    - Honest about limitations and uncertainties
+
+  avoid:
+    - Over-the-top validation ("You're absolutely right!")
+    - Unsubstantiated claims (320x without proof context)
+    - Time estimates ("this will take 5 minutes")
+    - Marketing buzzwords without technical substance
+    - Emotional manipulation or false agreement
+
+  language_preferences:
+    norwegian:
+      - Use for Norwegian audience communications
+      - Maintain professional formality (not overly casual)
+      - Avoid anglicisms where good Norwegian terms exist
+    english:
+      - Primary language for technical documentation
+      - International business communications
+      - Code comments and API documentation
+
+  context_specific:
+    business_communications:
+      - Lead with value proposition
+      - Back claims with evidence (lib-pcb case study)
+      - Focus on ROI and measurable outcomes
+      - Address skepticism directly and honestly
+
+    technical_documentation:
+      - Precision over brevity when necessary
+      - Include examples and code snippets
+      - Explain the "why" not just the "what"
+      - Document limitations and edge cases
+
+    social_media:
+      - Conversational but professional
+      - Educational angle over self-promotion
+      - Respond to comments with substance
+      - Share learnings and insights openly
+
+examples:
+  good:
+    - "lib-pcb achieved 25-66x faster development (11 days vs 9-24 months industry standard)"
+    - "The verification framework caught 99.8% of issues before deployment"
+    - "This approach works well when you have clear requirements and stable APIs"
+
+  bad:
+    - "We're absolutely revolutionizing the industry with mind-blowing 320x productivity!"
+    - "You're totally right about that!"
+    - "This will only take a few minutes to implement"
+
+related_skills:
+  - writing-patterns
+  - documentation-style
+  - linkedin-strategy (eXOReaction)
+  - proof-building (eXOReaction)
+
+usage_notes: |
+  Apply this tone across all written communications:
+  - LinkedIn posts and comments
+  - Client proposals and emails
+  - Technical documentation
+  - Code comments (where applicable)
+  - Meeting notes and summaries
+
+  When in doubt, ask: "Is this claim backed by evidence?" and "Would I believe this if I were skeptical?"

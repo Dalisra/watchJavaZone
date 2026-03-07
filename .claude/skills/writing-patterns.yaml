@@ -1,0 +1,223 @@
+name: writing-patterns
+description: Documentation structure and writing patterns for clear, effective communication
+version: 1.0.0
+type: methodology
+
+patterns:
+  document_structure:
+    executive_summary:
+      - Lead with key insight or decision
+      - 2-5 sentences maximum
+      - Include critical numbers or outcomes
+      - Link to detailed sections
+
+    detailed_content:
+      - Use hierarchical headings (H1 → H2 → H3)
+      - One main idea per section
+      - Progressive disclosure (overview → details → verification)
+      - Include examples and code snippets
+
+    verification_section:
+      - How to verify the information
+      - Expected outcomes
+      - Edge cases and limitations
+      - Next steps or follow-up actions
+
+  content_types:
+    readme:
+      structure:
+        - Purpose (what is this?)
+        - Quick start (how do I use it?)
+        - Features/capabilities (what can it do?)
+        - Examples (show me)
+        - API reference (if applicable)
+        - Verification (how do I know it works?)
+        - Contributing (how do I help?)
+
+      best_practices:
+        - Keep above-the-fold content minimal
+        - Use badges for status indicators
+        - Include screenshots/diagrams where helpful
+        - Link to detailed docs, don't embed everything
+
+    proposal:
+      structure:
+        - Context/problem statement
+        - Proposed solution (high-level)
+        - Approach and methodology
+        - Timeline and phases
+        - Investment and ROI
+        - Risks and mitigations
+        - Success criteria
+
+      best_practices:
+        - Lead with business value, not technical details
+        - Use tables for comparisons and pricing
+        - Include proof points and case studies
+        - Provide multiple options when appropriate
+
+    technical_guide:
+      structure:
+        - Prerequisites (what you need to know)
+        - Concepts (mental models)
+        - Step-by-step instructions
+        - Code examples (complete, runnable)
+        - Troubleshooting (common issues)
+        - Advanced topics (optional deep dives)
+
+      best_practices:
+        - Test all code examples
+        - Use consistent formatting
+        - Explain non-obvious decisions
+        - Link to related documentation
+
+    meeting_notes:
+      structure:
+        - Context (who, what, when, why)
+        - Key decisions made
+        - Action items (who, what, by when)
+        - Open questions
+        - Next steps
+
+      best_practices:
+        - Write during or immediately after meeting
+        - Use bullet points for scannability
+        - Tag action items with owners
+        - Share with attendees within 24 hours
+
+    linkedin_post:
+      structure:
+        - Hook (first sentence grabs attention)
+        - Context/story (make it relatable)
+        - Insight/learning (what's the takeaway?)
+        - Call to action (what should reader do?)
+
+      best_practices:
+        - Short paragraphs (1-3 sentences)
+        - Use line breaks for readability
+        - Include specific numbers/examples
+        - Ask a question to encourage comments
+
+  formatting_conventions:
+    markdown:
+      - Use `code` for inline code and commands
+      - Use ```language blocks for code snippets
+      - Use **bold** for emphasis, not CAPS
+      - Use > blockquotes for important callouts
+      - Use --- for horizontal rules (section breaks)
+      - Use [link text](url) for all hyperlinks
+
+    lists:
+      - Use numbered lists for sequential steps
+      - Use bullet lists for unordered items
+      - Keep list items parallel in structure
+      - Don't exceed 7±2 items (break into sub-sections)
+
+    tables:
+      - Use for structured comparisons
+      - Keep columns narrow (avoid horizontal scroll)
+      - Use header row with clear labels
+      - Consider alternatives for complex data
+
+    code_snippets:
+      - Include language identifier for syntax highlighting
+      - Keep examples focused (not full applications)
+      - Add comments for non-obvious logic
+      - Show expected output where helpful
+
+  clarity_techniques:
+    examples_before_abstraction:
+      - Show concrete example first
+      - Then explain the general principle
+      - Better: "fetch('/api/users') → then explain REST APIs"
+      - Avoid: "REST APIs use HTTP verbs → then show example"
+
+    progressive_detail:
+      - Start with simplest case
+      - Add complexity incrementally
+      - Use "For simple cases..." vs "For advanced scenarios..."
+      - Provide "skip to advanced" links
+
+    parallel_structure:
+      - Keep similar items in similar format
+      - If first item is a sentence, all should be sentences
+      - If first item starts with verb, all should start with verbs
+      - Reduces cognitive load
+
+    active_voice:
+      - Prefer "Create a file" over "A file should be created"
+      - Prefer "The system validates" over "Validation is performed"
+      - Clearer who/what is doing the action
+
+    specific_over_vague:
+      - "197,831 lines in 11 days" not "lots of code quickly"
+      - "99.8% test pass rate" not "nearly all tests pass"
+      - "4 qualified leads from 15 likes" not "good engagement"
+
+anti_patterns:
+  avoid:
+    - Walls of text (no paragraph breaks)
+    - Jargon without explanation
+    - Assuming too much context
+    - Burying the lede (key info too deep)
+    - Inconsistent terminology
+    - Missing examples
+    - Dead links
+    - Outdated content without warnings
+
+templates:
+  feature_announcement:
+    format: |
+      # [Feature Name]
+
+      ## What
+      Brief description of the feature (2-3 sentences)
+
+      ## Why
+      Problem it solves or value it provides
+
+      ## How to Use
+      Step-by-step or code example
+
+      ## Example
+      Concrete use case with output
+
+      ## Learn More
+      Links to detailed docs
+
+  problem_solution:
+    format: |
+      # Context
+      Describe the problem or challenge
+
+      # Analysis
+      What we discovered/learned
+
+      # Solution
+      Approach taken and reasoning
+
+      # Results
+      Outcomes with specific metrics
+
+      # Lessons
+      What we'd do differently or insights gained
+
+related_skills:
+  - tone-of-voice
+  - documentation-style
+  - github-workflow
+  - linkedin-strategy (eXOReaction)
+
+usage_notes: |
+  These patterns apply across all documentation types:
+  - Technical specs and API docs
+  - Business proposals and case studies
+  - LinkedIn posts and blog articles
+  - Meeting notes and project plans
+
+  Choose the appropriate pattern based on:
+  - Audience (technical vs business vs general)
+  - Purpose (inform, persuade, instruct)
+  - Medium (documentation, social media, email)
+
+  Always prioritize clarity over cleverness.

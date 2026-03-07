@@ -1,0 +1,130 @@
+name: starter-feature-workflow
+description: End-to-end workflow for developing a new feature with AI assistance. From understanding requirements to merged PR — structured, disciplined, verifiable.
+version: 1.0.0
+
+instructions: |
+  # Feature Development Workflow
+
+  ## When to Use This
+
+  Use this skill when:
+  - Starting work on a new feature or user story
+  - Implementing a requested change
+  - Adding a new capability to the system
+
+  ## The Full Workflow
+
+  ### Phase 1: Understand Before Building (10-15 min)
+
+  **Don't write a line of code until you can answer these:**
+
+  1. What does this feature do? (user-facing behavior)
+  2. What does it NOT do? (scope boundaries)
+  3. What existing code does it touch?
+  4. What are the edge cases and error conditions?
+  5. How will I know it's working correctly?
+
+  **Use Claude to explore:**
+  > "I need to implement [feature]. Read the codebase and tell me:
+  > what existing code is relevant? What patterns should I follow?
+  > What are the likely edge cases?"
+
+  Verify Claude's analysis against the actual code before proceeding.
+
+  ### Phase 2: Design (5-10 min)
+
+  Write a brief design before coding. Even 5 bullet points:
+  - New classes/methods needed
+  - Existing code to modify
+  - Data model changes (if any)
+  - Test approach
+
+  If the design is complex or involves trade-offs: write an ADR (see `starter-write-adr`).
+
+  ### Phase 3: Create Branch
+
+  ```bash
+  git checkout -b feature/short-description-of-feature
+  ```
+
+  Never develop on main. Every feature gets its own branch.
+
+  ### Phase 4: Test First (TDD)
+
+  Write the test before the implementation. See `tdd-workflow` skill.
+
+  At minimum:
+  - Happy path test (normal case works)
+  - Error case test (what happens when input is wrong)
+  - Edge case test (boundaries, nulls, empty collections)
+
+  ```
+  Tests: RED (expected — implementation doesn't exist yet)
+  ```
+
+  ### Phase 5: Implement
+
+  Ask Claude to implement, guided by your design:
+  > "Implement [feature] following this design: [your 5 bullets].
+  > The tests are in [TestFile]. Make them pass without changing the test assertions."
+
+  Check after each chunk:
+  - Does the code follow project conventions? (check CLAUDE.md)
+  - Are there any hallucinated APIs or imports?
+  - Does it handle the error cases you designed?
+
+  ```
+  Tests: GREEN
+  ```
+
+  ### Phase 6: Verify
+
+  Run the full verification sequence from `verification-patterns`:
+  1. All existing tests still pass (no regressions)
+  2. New tests pass
+  3. Code review (use `starter-code-review`)
+  4. Manual smoke test if the feature has a UI
+
+  ### Phase 7: Document
+
+  Update what needs updating:
+  - CLAUDE.md (if you added a new convention or pattern)
+  - Relevant skill (if Claude needed guidance you'll need again)
+  - LEARNINGS.md (if you discovered something surprising)
+  - API docs / README (if public interface changed)
+
+  Don't document what's obvious. Document what future-you will wonder about.
+
+  ### Phase 8: Commit and PR
+
+  ```bash
+  git add [specific files]
+  git commit -m "feat: [what the feature does, imperative]"
+  git push -u origin feature/short-description
+  ```
+
+  Create PR following `github-workflow` skill.
+  PR description: what changed + why + test plan.
+
+  ## Quick Sanity Checks
+
+  Before marking a feature done:
+  - [ ] All tests pass
+  - [ ] No new compiler warnings
+  - [ ] Code follows project conventions
+  - [ ] PR created and linked to issue
+  - [ ] LEARNINGS.md updated if something surprised you
+
+  ## When Things Go Wrong
+
+  **Stuck on implementation:**
+  > "I'm trying to [goal] but [specific obstacle]. Here's what I've tried: [list].
+  > What am I missing?"
+
+  **Tests keep failing:**
+  Stop and read the failure message carefully. Don't ask Claude to "fix the tests" — understand WHY they fail first.
+
+  **Design isn't working out:**
+  It's OK to restart. Throw away bad code early. The cost of a day's work is lower than the cost of carrying bad design for months.
+
+tags: [workflow, feature, development, tdd, process]

@@ -1,0 +1,176 @@
+name: sdd-context
+description: SDD (Skill-Driven Development) methodology context — what it is, where it came from, the 6 pillars, and how the installed skill library maps to each pillar. Entry point for the entire methodology.
+version: 1.0.0
+created: 2026-02-20
+
+instructions: |
+  # SDD — Skill-Driven Development
+
+  ## What Is SDD?
+
+  Skill-Driven Development is a methodology for AI-augmented software development where human expertise is encoded as **skills** — YAML files that give Claude Code persistent, project-specific context.
+
+  **The core insight:** AI tools made creation 10x faster. Comprehension stayed at 1x. Skills bridge the gap — they encode what would take a new team member months to absorb, available to Claude in every session, automatically.
+
+  **Conservative claim:** 10-30x productivity improvement is typical. Individual results depend on domain, team, and investment in skill infrastructure. Don't claim more than you can show.
+
+  ---
+
+  ## Where SDD Came From
+
+  Discovered during the **lib-pcb project** (January 16–27, 2026):
+
+  - **Goal:** Build a professional PCB design library from scratch
+  - **Result:** 197,831 lines of Java in 11 days — 25-66x faster than industry standard
+  - **Evidence:** 7,461 tests, 99.8% pass rate, manufacturing-ready Gerber exports
+  - **Industry standard:** 10–18 months for equivalent scope
+  - **Method:** 85 skills built progressively — every lesson captured as a skill immediately
+
+  The term "Skill-Driven Development" was coined by Vidar Moe (SpareBank 1 Utvikling, February 3, 2026) during a meeting where he saw the methodology demonstrated.
+
+  **Confirmed by Synthesis** (February 14–20, 2026): 84,692 LOC in 7 days, 73 PRs, 65% Claude co-authorship. Same method, completely different domain. The lib-pcb skills didn't transfer — the method did.
+
+  **Validated across 5 sectors:** Manufacturing (lib-pcb), Knowledge Infrastructure (Synthesis), Renewable Energy (Tvimenning), Financial Services (SpareBank 1), AI Security (Mynder).
+
+  ---
+
+  ## The 6 Pillars
+
+  | # | Pillar | Core Idea | Primary Skills |
+  |---|--------|-----------|----------------|
+  | 1 | **Intelligent Context** | Teach AI your codebase DNA | `claude-md-guidelines`, `skill-routing-decisions`, `skill-navigator-pattern` |
+  | 2 | **Strategic Delegation** | Right model, right task | See below |
+  | 3 | **Trust But Verify** | Productive paranoia — catch hallucinations cheaply | `fear-driven-development`, `verification-patterns`, `tdd-workflow` |
+  | 4 | **Directed Synthesis** | Human stays the conductor | `directed-synthesis` |
+  | 5 | **Process Discipline** | Guardrails that enable velocity | `github-workflow`, `tdd-workflow`, `regression-prevention` |
+  | 6 | **Continuous Learning** | Every mistake becomes a skill | `context-engineering-audit`, `skill-navigator-pattern`, `docs-organization` |
+
+  ---
+
+  ## Pillar Detail
+
+  ### Pillar 1: Intelligent Context
+  CLAUDE.md is the navigation hub — not a knowledge base. Skills are the detail.
+  - CLAUDE.md answers: "What is this project and where do I start?"
+  - Skills answer: "How exactly do I do X in THIS codebase?"
+  - Target: CLAUDE.md under 200 lines for a library, under 300 for a workspace
+  - Skills live in 3 layers: `~/.claude/skills/common/` → `~/.claude/skills/` → `.claude/skills/` in project
+  → Skills: `claude-md-guidelines`, `skill-routing-decisions`, `skill-navigator-pattern`, `context-engineering-audit`
+
+  ### Pillar 2: Strategic Delegation
+  Not every task needs the most powerful model. Haiku handles 60–70% of tasks at 12x lower cost.
+  - **Haiku:** Simple completions, boilerplate, repetitive patterns, unit tests
+  - **Sonnet:** Architecture decisions, complex logic, code review, debugging
+  - **Opus:** Strategic planning, novel problem solving, cross-system design
+  - Rule: start with Haiku, escalate when it struggles
+  - **Never** use model selection as an excuse to skip verification
+
+  ### Pillar 3: Trust But Verify
+  AI will hallucinate. Build systems to catch it cheaply before it reaches production.
+  - Round-trip tests: write → serialize → deserialize → verify same result
+  - Property-based testing: test invariants, not just happy paths
+  - Pre-commit checklist: automated tests must pass before any commit
+  - The six fears: hallucinations, production bugs, bad shipping, cost spiral, losing control, silent failures
+  → Skills: `fear-driven-development`, `verification-patterns`, `tdd-workflow`, `regression-prevention`, `proactive-bug-hunting`
+
+  ### Pillar 4: Directed Synthesis
+  YOU are the conductor. Claude proposes, human decides. Multi-tool orchestration (Claude → NotebookLM → presentations) produces insights no single tool can.
+  - Don't let AI drive the architecture — triangulate perspectives
+  - Generate multiple solutions, YOU evaluate and select
+  - Use AI output as raw material, apply your judgment as the filter
+  → Skill: `directed-synthesis`
+
+  ### Pillar 5: Process Discipline
+  Guardrails are what make velocity sustainable. Without discipline, speed creates debt.
+  - PR-only workflow: no direct commits to main, ever
+  - Every change reviewed — even if you're the only developer
+  - Commit format: `type: description` (feat, fix, docs, refactor, test, chore)
+  - Small commits: one logical change per commit, easier to revert
+  → Skills: `github-workflow`, `tdd-workflow`, `regression-prevention`
+
+  ### Pillar 6: Continuous Learning
+  Every bug fixed updates a skill. Every mistake prevents the next one. The system gets smarter every session.
+  - When Claude gets something wrong: fix it AND encode the fix as a skill update
+  - Keep a LEARNINGS.md: discoveries, gotchas, things that surprised you
+  - Quarterly skill audit: delete stale skills, update outdated ones
+  - Promotion path: when a skill appears in 2+ projects → promote to common
+  → Skills: `context-engineering-audit`, `skill-navigator-pattern`, `docs-organization`
+
+  ---
+
+  ## Installed Skill Library (19 skills in ~/.claude/skills/common/)
+
+  **This SDD Boost installed these skills. They are active in every session.**
+
+  ### Context Engineering
+  | Skill | What It Does |
+  |-------|-------------|
+  | `sdd-context` | This file — methodology navigator |
+  | `claude-md-guidelines` | CLAUDE.md is navigation hub, target sizes, what goes in/out |
+  | `skill-routing-decisions` | Where skills belong (project vs common vs global) |
+  | `skill-navigator-pattern` | When/how to build a navigator (create at 10+ skills) |
+  | `context-engineering-audit` | Health checks: CLAUDE.md line count, skill location, navigator presence |
+
+  ### Verification & Quality (Pillar 3)
+  | Skill | What It Does |
+  |-------|-------------|
+  | `fear-driven-development` | 6 fears + 6 systems. The emotional and practical core of SDD. |
+  | `verification-patterns` | Testing pyramid (70/20/10) + Six Pillars verification framework |
+  | `tdd-workflow` | Red-Green-Refactor with AI assistance |
+  | `regression-prevention` | 4-layer defence: tests + patterns + process + automation |
+  | `proactive-bug-hunting` | 5-step: recognize → search → review → fix → document |
+
+  ### AI Orchestration (Pillar 4)
+  | Skill | What It Does |
+  |-------|-------------|
+  | `directed-synthesis` | Human-directed AI. Triangulate. Stay the conductor. |
+
+  ### Process (Pillar 5)
+  | Skill | What It Does |
+  |-------|-------------|
+  | `github-workflow` | Commit format, branch naming, PR structure, safety rules |
+
+  ### Communication & Documentation (Pillar 1)
+  | Skill | What It Does |
+  |-------|-------------|
+  | `tone-of-voice` | Professional tone, Scandinavian humility, conservative claims |
+  | `writing-patterns` | Executive summary → details → verification |
+  | `documentation-style` | JavaDoc, ADRs, "document the why not the what" |
+  | `docs-organization` | current/ + completed/ + FUTURE-IDEAS.md structure |
+
+  ### Engineering Patterns
+  | Skill | What It Does |
+  |-------|-------------|
+  | `change-tracking` | Audit trail architecture, history and rollback |
+  | `smart-file-matching` | 3-strategy file resolution for ambiguous file references |
+  | `java-record-breaking-changes` | Safe Java record migration with new fields |
+
+  ---
+
+  ## Using the Methodology
+
+  When working on ANY task, Claude should consider:
+
+  1. **Which pillar applies?** (context, delegation, verification, synthesis, process, learning)
+  2. **Which skill covers this?** (check the table above)
+  3. **Am I following process discipline?** (no direct commits, tests pass before commit)
+  4. **What should I capture as a skill?** (any lesson learned, any repeated pattern)
+
+  Useful trigger phrases:
+  - "Which pillar applies here?"
+  - "What skill should I use for this?"
+  - "How would SDD handle this?"
+  - "Should this be a skill?"
+  - "Is my CLAUDE.md following the guidelines?"
+
+tags:
+  - sdd
+  - methodology
+  - workshop
+  - context
+  - pillars
+
+metadata:
+  type: context-skill
+  distribution: sdd-workshop-boost
+  version: 1.0.0

@@ -1,0 +1,118 @@
+name: starter-write-adr
+description: Write Architecture Decision Records (ADRs) to capture significant technical decisions. When to write one, what to include, where to store them.
+version: 1.0.0
+
+instructions: |
+  # Write an Architecture Decision Record (ADR)
+
+  ## When to Use This
+
+  Write an ADR when:
+  - Choosing between two or more technical approaches (database, framework, pattern)
+  - Making a decision that will be hard to reverse
+  - Making a choice that future developers will wonder about ("why did they do it this way?")
+  - Accepting a trade-off (performance vs. simplicity, consistency vs. flexibility)
+  - Deciding NOT to do something obvious (and you want to explain why)
+
+  You do NOT need an ADR for:
+  - Routine implementation choices
+  - Decisions that are obvious given the context
+  - Decisions that are easily reversible
+  - Decisions already documented in the project wiki or README
+
+  ## ADR Format
+
+  ```markdown
+  # ADR-[number]: [Short title — what was decided]
+
+  **Date:** YYYY-MM-DD
+  **Status:** Proposed | Accepted | Deprecated | Superseded by ADR-X
+
+  ## Context
+
+  [What situation led to this decision?
+  What problem were we trying to solve?
+  What constraints or requirements shaped the options?
+  2-4 sentences.]
+
+  ## Decision
+
+  [What did we decide to do?
+  State it clearly and specifically.
+  "We will use X" not "We should consider X".]
+
+  ## Alternatives Considered
+
+  [What other options did we evaluate?
+  Why didn't we choose them?
+  Be honest about the trade-offs.]
+
+  | Option | Pros | Cons | Why Rejected |
+  |--------|------|------|-------------|
+  | Option A (chosen) | ... | ... | — |
+  | Option B | ... | ... | [reason] |
+  | Option C | ... | ... | [reason] |
+
+  ## Consequences
+
+  **Positive:**
+  - [What becomes easier or better?]
+
+  **Negative:**
+  - [What becomes harder? What do we give up?]
+
+  **Risks:**
+  - [What could go wrong? What would make us regret this?]
+
+  ## Review Trigger
+
+  [Under what circumstances should we revisit this decision?
+  E.g., "If throughput exceeds 10K req/sec" or "If we need multi-region support"]
+  ```
+
+  ## Where to Store ADRs
+
+  ```
+  docs/
+    decisions/
+      ADR-001-use-postgresql.md
+      ADR-002-event-sourcing-for-orders.md
+      ADR-003-reject-graphql.md
+  ```
+
+  Or in a top-level `decisions/` directory. Be consistent.
+
+  ## Using Claude to Write ADRs
+
+  ### Step 1: Describe the decision context
+  > "I need to write an ADR. We're deciding between [Option A] and [Option B] for [purpose].
+  > Our constraints are: [list constraints].
+  > Our team's priorities are: [list priorities]."
+
+  ### Step 2: Generate the alternatives analysis
+  > "Compare [Option A] and [Option B] for our use case.
+  > Focus on: [relevant dimensions — performance, operability, team familiarity, cost]"
+
+  ### Step 3: Write the ADR
+  > "Write an ADR for our decision to use [chosen option].
+  > Include the alternatives we considered and why we rejected them."
+
+  ### Step 4: Review and verify
+  Read every claim. Claude may:
+  - Overstate pros of the chosen option
+  - Miss context-specific cons
+  - Reference capabilities you won't actually use
+  Always verify the "Alternatives Considered" table against your actual evaluation.
+
+  ## The Value of ADRs
+
+  In 6 months, when someone asks "why did we use X?", the ADR answers:
+  - What we knew at the time
+  - What we considered and rejected
+  - What trade-offs we accepted
+  - When to reconsider
+
+  Without ADRs: decisions get re-litigated endlessly.
+  With ADRs: the reasoning is preserved even after the people who made the decision have left.
+
+tags: [documentation, architecture, decision-making, adr]

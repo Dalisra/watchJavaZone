@@ -1,0 +1,515 @@
+---
+name: docs-organization
+description: Best practices for organizing documentation - when to use current/completed structure, how to maintain FUTURE-FIXERS.md
+tags: [docs, organization, process, best-practices]
+status: production-ready
+priority: medium
+relatedSkills: [phase-completion-docs, new-feature-docs, skill-navigator, SKILL-WRITING-GUIDE]
+---
+# Documentation Organization Best Practices
+
+Guidelines for organizing project documentation to maintain clarity and scalability as the project grows.
+
+## When to Use This
+
+Use this skill when:
+
+- **Creating new documentation files**: You need to know where to place a new .md file
+- **Organizing phase documentation**: You've completed a phase and need to move docs from `current/` to `completed/`
+- **Directory structure decisions**: You're deciding whether to organize documentation into subdirectories
+- **Documentation is cluttered**: You have 10+ files in one directory and finding things is difficult
+- **Setting up new doc categories**: You're creating a new documentation area and want to start with good structure
+
+You're in the right place if:
+- You're about to create a TDD plan, implementation doc, or design document
+- You're seeing too many files in `docs/auto-fix/` or similar directories
+- You're asking "Should I create subdirectories for this?"
+- You're completing a phase and following the phase-completion-docs checklist
+- You're maintaining FUTURE-FIXERS.md or similar planning documents
+
+## Where to Create New Documentation Files
+
+**⚠️ NEVER create documentation files in the project root!** Always place them in the appropriate `docs/` subdirectory.
+
+### Documentation Hierarchy
+
+```
+docs/
+├── implementation/          # Implementation details and technical specs
+│   ├── gerber/             # Gerber format implementation
+│   ├── altium/             # Altium format implementation
+│   ├── excellon/           # Excellon format implementation
+│   ├── validators/         # Validator implementations
+│   └── ...
+│
+├── development/            # Development process and planning
+│   ├── issues/            # Bug tracking and issue documentation
+│   ├── pull-requests/     # PR descriptions and planning
+│   ├── IMPLEMENTATION-HISTORY.md
+│   ├── AUTO-FIX-ROADMAP.md
+│   └── PHASE*-*.md        # Phase plans and summaries
+│
+├── guides/                 # User guides and tutorials
+│   └── ...
+│
+├── specifications/         # Format specifications and standards
+│   └── ...
+│
+├── feature-stories/        # Feature narratives and case studies
+│   └── ...
+│
+└── testing/                # Testing strategies and reports
+    └── ...
+```
+
+### Decision Tree: Where Should This File Go?
+
+**Implementation documentation** (TDD plans, implementation details, design docs):
+- **Gerber-related** → `docs/implementation/gerber/`
+- **Altium-related** → `docs/implementation/altium/`
+- **Validator-related** → `docs/implementation/validators/`
+- **Generic implementation** → `docs/implementation/`
+
+**Issue tracking** (bug reports, investigations, GitHub issues):
+- → `docs/development/issues/`
+- Naming: `ISSUE-{number}-{description}.md` or `GITHUB-ISSUE-{description}.md`
+
+**Pull request documentation** (PR descriptions, complex PR planning):
+- → `docs/development/pull-requests/`
+- Naming: `PR-{description}.md`
+
+**Phase/project planning** (roadmaps, phase plans, completion summaries):
+- → `docs/development/`
+
+**User-facing guides** (how-to, tutorials, getting started):
+- → `docs/guides/`
+
+**Format specifications** (MIF format, Gerber specs, IPC standards):
+- → `docs/specifications/`
+
+**Feature narratives** (success stories, case studies):
+- → `docs/feature-stories/`
+
+**Testing documentation** (test strategies, reports):
+- → `docs/testing/`
+
+### Examples of Correct Placement
+
+✅ **Good:**
+```
+docs/implementation/gerber/Documentation-Layer-Separation.md  # TDD plan for Gerber feature
+docs/implementation/gerber/Assembly-Panel-Separation.md       # Implementation details
+docs/development/PHASE8-COMPLETION-SUMMARY.md                 # Phase completion
+docs/development/issues/ISSUE-236-BOUNDING-BOX-FIX.md        # Issue investigation
+docs/development/pull-requests/PR-KICAD-COPPER.md            # PR description
+docs/guides/Getting-Started.md                               # User guide
+```
+
+❌ **Bad:**
+```
+TDD-DOCUMENTATION-LAYERS.md                    # ❌ In project root!
+ASSEMBLY-PANEL-IMPLEMENTATION.md               # ❌ In project root!
+Documentation-Separation-Plan.md               # ❌ In project root!
+ISSUE-236-FIX.md                              # ❌ In project root!
+PR-DESCRIPTION.md                              # ❌ In project root!
+```
+
+### Common Mistakes
+
+1. **Creating TDD plans in root** → Should be in `docs/implementation/{category}/`
+2. **Creating phase plans in root** → Should be in `docs/development/`
+3. **Creating implementation docs in root** → Should be in `docs/implementation/{category}/`
+4. **Creating issue tracking docs in root** → Should be in `docs/development/issues/`
+5. **Creating PR descriptions in root** → Should be in `docs/development/pull-requests/`
+
+**Rule:** If you're about to create a .md file in the project root (except README.md, CHANGELOG.md, CONTRIBUTING.md), STOP and check this hierarchy first!
+
+---
+
+## Quick Start
+
+Most common use case - organizing phase documentation after completion:
+
+```bash
+# 1. After completing Phase N, move docs from current/ to completed/
+cd docs/auto-fix
+mv current/PHASEN-*.md completed/
+
+# 2. Update INDEX file to point to new locations
+# Edit AUTO-FIX-PLAN-INDEX.md to update paths
+
+# 3. Verify links still work
+grep -r "PHASEN" docs/ | grep -v ".md:"
+```
+
+Expected structure:
+```
+docs/auto-fix/
+├── AUTO-FIX-PLAN-INDEX.md
+├── FUTURE-FIXERS.md
+├── current/            # Active phases only
+└── completed/          # Completed phases
+```
+
+## Overview
+
+**Problem:** As projects mature, documentation accumulates. Without organization, finding current vs historical docs becomes difficult.
+
+**Solution:** Structured organization with clear separation of active, completed, and future work.
+
+**Learned From:** Phase 8 completion (January 2026) - reorganized docs/auto-fix/ from 13 flat files to `current/` + `completed/` + FUTURE-FIXERS.md
+
+---
+
+## When to Organize Documentation
+
+### Signs You Need Structure:
+
+- ✅ **10+ documentation files** in a single directory
+- ✅ **Multiple phases/versions** of work (Phase 1-8, versions, releases)
+- ✅ **Difficulty finding current work** - "Which file is the active plan?"
+- ✅ **Historical clutter** - Completed work mixed with active work
+- ✅ **Scalability concerns** - "What happens when we have 20 phases?"
+
+### Don't Organize Too Early:
+
+- ❌ Less than 5 documentation files
+- ❌ Single active phase/version
+- ❌ Clear naming already makes organization obvious
+
+**Rule of Thumb:** Organize when you catch yourself spending >2 minutes finding the right document.
+
+---
+
+## Recommended Structure
+
+### Pattern: current/ + completed/
+
+```
+docs/{category}/
+├── INDEX.md                         # Central index/registry
+├── FUTURE-IDEAS.md                  # Planned/conceptual work (optional)
+│
+├── current/                         # Active/in-progress work
+│   ├── active-project-1.md
+│   └── active-project-2.md
+│
+└── completed/                       # Historical/finished work
+    ├── project-1-plan.md
+    ├── project-1-completion.md
+    ├── project-2-plan.md
+    └── project-2-completion.md
+```
+
+**Benefits:**
+- Clear separation: active vs historical
+- Easy navigation: `cd current/` finds active work instantly
+- Scalable: doesn't get cluttered as project grows
+- Preserves history: completed work still accessible
+
+---
+
+## Real Example: docs/auto-fix/
+
+### Before (Cluttered - 13 files flat)
+
+```
+docs/auto-fix/
+├── AUTO-FIX-PLAN-INDEX.md
+├── PHASE5-ITERATION5-PLAN.md
+├── PHASE5-COMPLETION-SUMMARY.md
+├── PHASE5-ITERATION5-COMPLETION.md  ← duplicate!
+├── PHASE5-BATTLE-TEST-REPORT.md
+├── PHASE6-DFM-PLAN.md
+├── PHASE6-COMPLETION-SUMMARY.md
+├── PHASE7-SIGNAL-INTEGRITY-PLAN.md
+├── PHASE8-CONNECTIVITY-PLAN.md
+├── PHASE8-GETTING-STARTED.md
+├── PHASE8-COMPLETION.md              ← inconsistent naming!
+└── PHASE8-BATTLE-TEST-REPORT.md
+```
+
+**Problems:**
+- Which phase is active? (have to read each file)
+- Duplicate files (PHASE5 has 2 completion docs)
+- Inconsistent naming (PHASE8-COMPLETION vs PHASE5-COMPLETION-SUMMARY)
+- Will get worse with 20+ phases
+
+### After (Organized - 2 files + 2 dirs)
+
+```
+docs/auto-fix/
+├── AUTO-FIX-PLAN-INDEX.md          # Central registry
+├── FUTURE-FIXERS.md                # Planned and conceptual work
+│
+├── current/                         # Active phases (1 file)
+│   └── PHASE7-SIGNAL-INTEGRITY-PLAN.md
+│
+└── completed/                       # Finished phases (9 files)
+    ├── PHASE5-ITERATION5-PLAN.md
+    ├── PHASE5-COMPLETION-SUMMARY.md
+    ├── PHASE5-BATTLE-TEST-REPORT.md
+    ├── PHASE6-DFM-PLAN.md
+    ├── PHASE6-COMPLETION-SUMMARY.md
+    ├── PHASE8-CONNECTIVITY-PLAN.md
+    ├── PHASE8-GETTING-STARTED.md
+    ├── PHASE8-COMPLETION-SUMMARY.md  ← consistent naming!
+    └── PHASE8-BATTLE-TEST-REPORT.md
+```
+
+**Benefits:**
+- Instantly see active work: `ls current/`
+- No duplicates (cleaned during migration)
+- Consistent naming enforced
+- Scales to 100 phases without issues
+
+---
+
+## Migration Strategy
+
+### Step 1: Create Structure
+
+```bash
+mkdir current completed
+```
+
+### Step 2: Identify Active Work
+
+Move active/in-progress files to `current/`:
+```bash
+mv PHASE7-*.md current/
+```
+
+### Step 3: Archive Completed Work
+
+Move finished work to `completed/`:
+```bash
+mv PHASE5-*.md PHASE6-*.md PHASE8-*.md completed/
+```
+
+### Step 4: Clean Up
+
+- Remove duplicates (keep most recent)
+- Fix naming inconsistencies
+- Update index file with new paths
+
+### Step 5: Update Links
+
+Update central index (e.g., AUTO-FIX-PLAN-INDEX.md):
+```markdown
+- **Plan File:** [`current/PHASE7-PLAN.md`](current/PHASE7-PLAN.md)
+- **Completion:** [`completed/PHASE8-COMPLETION.md`](completed/PHASE8-COMPLETION.md)
+```
+
+---
+
+## FUTURE-IDEAS.md Pattern
+
+### Purpose
+
+Document **planned but not yet implemented** features/work. Prevents:
+- Re-discussing the same ideas repeatedly
+- Forgetting good ideas
+- Unclear prioritization
+
+### Structure
+
+```markdown
+# Future {Category}
+
+## 📋 Planned (Design Complete)
+Features with detailed designs, ready for implementation.
+
+### Feature 1
+- **Description:** What it does
+- **Priority:** P1/P2/P3
+- **Target Phase:** When to implement
+- **Status:** Design complete, awaiting resources
+
+## 💭 Conceptual (Future Consideration)
+Ideas for future consideration, pending demand.
+
+### Feature 2
+- **Description:** What it does
+- **Priority:** P3
+- **Rationale:** Why it might be useful
+- **Complexity:** High/Medium/Low
+```
+
+### Example: docs/auto-fix/FUTURE-FIXERS.md
+
+Documents 23 planned/conceptual auto-fixers:
+- **📋 6 Planned** - Design complete, ready to implement (component clearance, fiducials, etc.)
+- **💭 17 Conceptual** - Ideas pending user demand (panelization, cost optimization, etc.)
+
+**Benefits:**
+- Clear roadmap for future work
+- Prioritization visible (P1/P2/P3)
+- User demand tracking ("If you need this, file an issue")
+- Prevents scope creep (conceptual items stay conceptual until prioritized)
+
+---
+
+## Naming Conventions
+
+### Consistency Matters
+
+**Bad (inconsistent):**
+```
+PHASE8-COMPLETION.md
+PHASE6-COMPLETION-SUMMARY.md
+PHASE5-ITERATION5-COMPLETION.md
+```
+
+**Good (consistent):**
+```
+PHASE5-COMPLETION-SUMMARY.md
+PHASE6-COMPLETION-SUMMARY.md
+PHASE8-COMPLETION-SUMMARY.md
+```
+
+### Recommended Patterns
+
+**For Phases/Versions:**
+```
+PHASE{N}-{TOPIC}-PLAN.md
+PHASE{N}-COMPLETION-SUMMARY.md
+PHASE{N}-BATTLE-TEST-REPORT.md
+PHASE{N}-GETTING-STARTED.md (optional)
+```
+
+**For Features:**
+```
+{FEATURE}-DESIGN.md
+{FEATURE}-IMPLEMENTATION.md
+{FEATURE}-TESTING.md
+```
+
+**Rule:** Pick a pattern, document it in INDEX.md, enforce during reviews.
+
+---
+
+## Maintenance
+
+### During Active Development
+
+**New phase starts:**
+1. Create `current/PHASEN-{TOPIC}-PLAN.md`
+2. Reference in INDEX.md under "Active Plans"
+
+**Phase completes:**
+1. Create `current/PHASEN-COMPLETION-SUMMARY.md`
+2. Move all PHASEN-*.md from `current/` to `completed/`
+3. Update INDEX.md links to point to `completed/`
+4. Update FUTURE-IDEAS.md if relevant
+
+### Regular Cleanup (quarterly)
+
+1. **Check for duplicates** - Multiple docs describing same thing?
+2. **Verify naming consistency** - All files follow pattern?
+3. **Update INDEX.md** - Links still valid?
+4. **Archive obsolete docs** - Mark as deprecated if superseded
+
+---
+
+## Anti-Patterns to Avoid
+
+### ❌ Version Suffixes
+
+```
+PLAN-v1.md
+PLAN-v2.md
+PLAN-final.md
+PLAN-final-REALLY.md
+```
+
+**Better:** Use git history for versions. Keep only current version in docs.
+
+### ❌ Temporal Prefixes
+
+```
+2024-01-15-meeting-notes.md
+2024-02-10-design-doc.md
+```
+
+**Better:** Use directories by phase/quarter. Use git commits for dates.
+
+### ❌ Status in Filenames
+
+```
+PLAN-DRAFT.md
+PLAN-IN-REVIEW.md
+PLAN-APPROVED.md
+```
+
+**Better:** Use directories (`current/` vs `completed/`) or git branches.
+
+### ❌ Deep Nesting
+
+```
+docs/2024/Q1/January/Week1/Monday/meeting-notes.md
+```
+
+**Better:** 2-3 levels max. Use INDEX.md to organize, not directory depth.
+
+---
+
+## Decision Tree
+
+**Should I create current/completed structure?**
+
+```
+Do you have 10+ docs in one directory?
+├─ Yes → Organize now
+└─ No
+   ├─ Do you expect 20+ docs in 6 months?
+   │  ├─ Yes → Organize now (preventative)
+   │  └─ No → Wait until needed
+   └─ Are people struggling to find current work?
+      ├─ Yes → Organize now
+      └─ No → Wait until needed
+```
+
+**Should I create FUTURE-IDEAS.md?**
+
+```
+Do you have 5+ planned-but-not-implemented features?
+├─ Yes → Create FUTURE-IDEAS.md
+└─ No → Keep in INDEX.md or issue tracker
+```
+
+---
+
+## Key Takeaways
+
+1. **Organize when you need it** - Don't over-engineer early, but don't wait until chaos
+2. **current/ + completed/** - Simple, scalable, clear
+3. **FUTURE-IDEAS.md** - Captures planned work without cluttering active docs
+4. **Consistency > perfection** - Pick a naming pattern, stick to it
+5. **INDEX.md is essential** - Central registry prevents link rot
+
+---
+
+## Related Skills
+
+**Apply This Pattern:**
+- **phase-completion-docs** - Uses this organization pattern for phase completion
+- **new-feature-docs** - Documents features within organized structure
+
+**Learn From:**
+- **skill-navigator** - Shows how to organize 60+ skill files effectively
+- **SKILL-WRITING-GUIDE** - Explains when to create skills vs update CLAUDE.md
+
+**Similar Organization Challenges:**
+- **mif** - MIF format index showing how to organize 17 related skills
+- **signal-integrity** - Signal integrity index organizing multiple validators
+
+**See Also:**
+- Example: `docs/auto-fix/` directory structure (current/ + completed/ + FUTURE-FIXERS.md)
+- Example: `.claude/skills/` directory structure (60+ skills organized by category)
+
+---
+
+**Status:** production-ready | **Priority:** medium
+**Tags:** #docs #organization #process #best-practices
+**Last Updated:** 2026-02-11
