@@ -12,7 +12,8 @@ YouTube-like platform for JavaZone conference videos - searchable, trackable, di
 
 ```bash
 # Backend (Micronaut + Postgres)
-cd backend/backend
+cd backend
+# Requires local Postgres running: jdbc:postgresql://localhost:5432/postgres (schema: watch)
 ./gradlew run          # http://localhost:8080
 
 # Frontend (React + Vite)
@@ -25,7 +26,7 @@ npm install && npm run dev  # http://localhost:5173
 ## Architecture
 
 ```
-backend/backend/       # Micronaut 4.10 (Java 21, Gradle)
+backend/               # Micronaut 4.10 (Java 21, Gradle)
   src/main/java/backend/
   src/main/resources/  # application.yml, migrations
 
@@ -46,7 +47,9 @@ docs/                  # Implementation plans, ADRs
 - TypeScript: PascalCase components, camelCase functions
 
 **Patterns:**
+- Dependency Injection: Constructor injection ONLY. Never use `@Inject` on fields.
 - Database access: Micronaut Data repositories only
+- Database provisioning: Local database (avoid volatile TestResources to save AI API credits via persistence)
 - Search: PostgreSQL FTS (no Elasticsearch)
 - Video: Vimeo embeds (no custom hosting)
 - Config: application.yml (no hardcoded values)
