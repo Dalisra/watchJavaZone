@@ -10,6 +10,7 @@ import io.micronaut.scheduling.annotation.Async;
 import java.time.Duration;
 import java.time.Instant;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Singleton
+@Transactional(Transactional.TxType.REQUIRES_NEW)
 public class VideoTrackingService {
 
     private static final Logger log = LoggerFactory.getLogger(VideoTrackingService.class);
