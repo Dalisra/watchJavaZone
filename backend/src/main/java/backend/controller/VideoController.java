@@ -4,22 +4,23 @@ import backend.controller.dto.SpeakerResponse;
 import backend.controller.dto.VideoResponse;
 import backend.domain.Video;
 import backend.repository.SpeakerRow;
+import backend.repository.VideoImpressionRepository;
 import backend.repository.VideoRepository;
 import backend.repository.VideoSpeakerRepository;
+import backend.repository.VideoViewCount;
 import backend.service.VideoTrackingService;
+import backend.util.HttpRequestUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import jakarta.transaction.Transactional;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller("/api/videos")
-@ExecuteOn(TaskExecutors.VIRTUAL)
+@ExecuteOn(TaskExecutors.BLOCKING)
 @Transactional
 public class VideoController {
 
@@ -27,13 +28,16 @@ public class VideoController {
 
     private final VideoRepository videoRepository;
     private final VideoSpeakerRepository videoSpeakerRepository;
+    private final VideoImpressionRepository impressionRepository;
     private final VideoTrackingService trackingService;
 
     public VideoController(VideoRepository videoRepository,
-                           VideoSpeakerRepository videoSpeakerRepository,
-                           VideoTrackingService trackingService) {
+            VideoSpeakerRepository videoSpeakerRepository,
+            VideoImpressionRepository impressionRepository,
+            VideoTrackingService trackingService) {
         this.videoRepository = videoRepository;
         this.videoSpeakerRepository = videoSpeakerRepository;
+        this.impressionRepository = impressionRepository;
         this.trackingService = trackingService;
     }
 
@@ -42,12 +46,12 @@ public class VideoController {
     public List<VideoResponse> listVideos(
             @QueryValue(defaultValue = "0") int page,
             @QueryValue(defaultValue = "20") int size,
-            @QueryValue(defaultValue = "") String lang,
+            @QueryValue String lang,
             HttpRequest<?> request) {
 
         int limitedSize = Math.min(size, 20);
         List<Video> videos = videoRepository.listVideos(limitedSize, page * limitedSize);
-        List<VideoResponse> responses = toResponses(videos, null, lang);
+        List<VideoResponse> responses = toResponses(videos, null, null, lang);
         trackImpressions(responses, "list", request);
         return responses;
     }
@@ -56,7 +60,7 @@ public class VideoController {
     @Get("/{id}")
     public Optional<VideoResponse> getVideo(
             String id,
-            @QueryValue(defaultValue = "") String lang,
+            @QueryValue String lang,
             HttpRequest<?> request) {
         Optional<Video> found = videoRepository.findById(id);
         if (found.isEmpty()) {
@@ -65,16 +69,18 @@ public class VideoController {
         Video video = found.get();
         List<Video> related = videoRepository.findRelated(id);
 
-        Map<String, List<SpeakerRow>> speakerMap = loadSpeakers(
-                collectIds(List.of(video), related));
+        List<String> allIds = collectIds(List.of(video), related);
+        Map<String, List<SpeakerRow>> speakerMap = loadSpeakers(allIds);
+        Map<String, Long> viewCounts = loadViewCounts(allIds);
 
-        VideoResponse videoResponse = toResponse(video, speakerMap.get(video.getId()), null, lang);
-        List<VideoResponse> relatedResponses = toResponses(related, speakerMap, lang);
+        VideoResponse videoResponse = toResponse(video, speakerMap.get(video.getId()), null, lang,
+                viewCounts.getOrDefault(video.getId(), 0L));
+        List<VideoResponse> relatedResponses = toResponses(related, speakerMap, viewCounts, lang);
 
-        String ip = extractIp(request);
-        String ua = request.getHeaders().get("User-Agent");
-        asyncTrack(List.of(video.getId()), "detail", ip, ua);
-        asyncTrack(relatedResponses.stream().map(VideoResponse::id).collect(Collectors.toList()),
+        String ip = HttpRequestUtils.extractIp(request);
+        String ua = HttpRequestUtils.extractUserAgent(request);
+        trackingService.trackDetailImpression(video.getId(), video.getLengthMinutes(), ip, ua);
+        trackingService.trackImpressions(relatedResponses.stream().map(VideoResponse::id).collect(Collectors.toList()),
                 "related", ip, ua);
 
         return Optional.of(withRelated(videoResponse, relatedResponses));
@@ -89,7 +95,7 @@ public class VideoController {
     @Get("/search")
     public List<VideoResponse> search(
             @QueryValue String q,
-            @QueryValue(defaultValue = "") String lang,
+            @QueryValue String lang,
             HttpRequest<?> request) {
 
         List<Video> videos = switch (lang) {
@@ -97,39 +103,46 @@ public class VideoController {
             case "no" -> videoRepository.searchNo(q);
             default -> videoRepository.searchBoth(q);
         };
-        List<VideoResponse> responses = toResponses(videos, null, lang);
+        List<VideoResponse> responses = toResponses(videos, null, null, lang);
         trackImpressions(responses, "search", request);
+
+        String ip = HttpRequestUtils.extractIp(request);
+        String ua = HttpRequestUtils.extractUserAgent(request);
+        trackingService.trackSearch(q, responses.size(), ip, ua);
+
         return responses;
     }
 
     /** Videos with the most unique viewers in the last 7 days. */
     @Get("/trending")
     public List<VideoResponse> trending(
-            @QueryValue(defaultValue = "") String lang,
+            @QueryValue String lang,
             HttpRequest<?> request) {
         List<Video> videos = videoRepository.findTrending();
-        List<VideoResponse> responses = toResponses(videos, null, lang);
+        List<VideoResponse> responses = toResponses(videos, null, null, lang);
         trackImpressions(responses, "trending", request);
         return responses;
     }
 
     // ── Mapping helpers ───────────────────────────────────────────────────────
 
-    private List<VideoResponse> toResponses(List<Video> videos, Map<String, List<SpeakerRow>> speakerMap, String lang) {
+    private List<VideoResponse> toResponses(List<Video> videos, Map<String, List<SpeakerRow>> speakerMap,
+            Map<String, Long> viewCounts, String lang) {
         if (videos.isEmpty()) {
             return List.of();
         }
-        Map<String, List<SpeakerRow>> speakers = speakerMap != null
-                ? speakerMap
-                : loadSpeakers(videos.stream().map(Video::getId).collect(Collectors.toList()));
+        List<String> ids = videos.stream().map(Video::getId).collect(Collectors.toList());
+        Map<String, List<SpeakerRow>> speakers = speakerMap != null ? speakerMap : loadSpeakers(ids);
+        Map<String, Long> counts = viewCounts != null ? viewCounts : loadViewCounts(ids);
         return videos.stream()
-                .map(v -> toResponse(v, speakers.get(v.getId()), null, lang))
+                .map(v -> toResponse(v, speakers.get(v.getId()), null, lang, counts.getOrDefault(v.getId(), 0L)))
                 .collect(Collectors.toList());
     }
 
-    private VideoResponse toResponse(Video v, List<SpeakerRow> speakers, List<VideoResponse> related, String lang) {
-        List<SpeakerResponse> speakerResponses = speakers == null ? List.of() :
-                speakers.stream()
+    private VideoResponse toResponse(Video v, List<SpeakerRow> speakers, List<VideoResponse> related, String lang,
+            long viewCount) {
+        List<SpeakerResponse> speakerResponses = speakers == null ? List.of()
+                : speakers.stream()
                         .map(s -> new SpeakerResponse(s.name(), s.bio()))
                         .collect(Collectors.toList());
 
@@ -170,8 +183,20 @@ public class VideoController {
                 base,
                 boost,
                 base + boost,
+                v.getThumbnailUrl(),
+                v.getVimeoDuration(),
+                viewCount,
                 speakerResponses,
                 related);
+    }
+
+    private Map<String, Long> loadViewCounts(List<String> videoIds) {
+        if (videoIds.isEmpty()) {
+            return Map.of();
+        }
+        return impressionRepository.countDetailViewsForVideos(videoIds)
+                .stream()
+                .collect(Collectors.toMap(VideoViewCount::videoId, VideoViewCount::viewCount));
     }
 
     private Map<String, List<SpeakerRow>> loadSpeakers(List<String> videoIds) {
@@ -194,27 +219,8 @@ public class VideoController {
         if (responses.isEmpty()) {
             return;
         }
-        asyncTrack(responses.stream().map(VideoResponse::id).collect(Collectors.toList()),
-                endpoint, extractIp(request), request.getHeaders().get("User-Agent"));
-    }
-
-    private void asyncTrack(List<String> ids, String endpoint, String ip, String ua) {
-        if (ids.isEmpty()) {
-            return;
-        }
-        Thread.ofVirtual().start(() -> trackingService.trackImpressions(ids, endpoint, ip, ua));
-    }
-
-    private String extractIp(HttpRequest<?> request) {
-        String forwarded = request.getHeaders().get("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        SocketAddress addr = request.getRemoteAddress();
-        if (addr instanceof InetSocketAddress isa) {
-            return isa.getAddress().getHostAddress();
-        }
-        return null;
+        trackingService.trackImpressions(responses.stream().map(VideoResponse::id).collect(Collectors.toList()),
+                endpoint, HttpRequestUtils.extractIp(request), HttpRequestUtils.extractUserAgent(request));
     }
 
     private static VideoResponse withRelated(VideoResponse v, List<VideoResponse> related) {
@@ -226,6 +232,8 @@ public class VideoController {
                 v.startTime(), v.endTime(),
                 v.keywords(), v.aiKeywords(),
                 v.baseScore(), v.viewBoost(), v.totalScore(),
+                v.thumbnailUrl(), v.duration(),
+                v.viewCount(),
                 v.speakers(), related);
     }
 }

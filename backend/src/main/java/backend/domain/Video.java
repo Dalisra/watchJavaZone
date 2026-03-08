@@ -44,6 +44,9 @@ public class Video {
     private Integer baseScore;
     private Integer viewBoost;
 
+    private String thumbnailUrl;
+    private Integer vimeoDuration;
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -224,6 +227,22 @@ public class Video {
 
     public void setViewBoost(Integer viewBoost) {
         this.viewBoost = viewBoost;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public Integer getVimeoDuration() {
+        return vimeoDuration;
+    }
+
+    public void setVimeoDuration(Integer vimeoDuration) {
+        this.vimeoDuration = vimeoDuration;
     }
 
     public Instant getCreatedAt() {

@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@theme {
+    --color-brand-500: #e44d26;
+    /* JavaZone orange-ish */
+    --color-background: #0f0f11;
+    --color-surface: #18181b;
+    --color-surface-hover: #27272a;
+
+    --color-text-primary: #f4f4f5;
+    --color-text-secondary: #a1a1aa;
+
+    --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+    body {
+        @apply bg-background text-text-primary antialiased selection:bg-brand-500/30 font-sans;
+    }
+}

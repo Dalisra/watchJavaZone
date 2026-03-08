@@ -28,6 +28,9 @@ public record VideoResponse(
         int baseScore,
         int viewBoost,
         int totalScore,
+        String thumbnailUrl,        // from Vimeo oEmbed
+        Integer duration,           // video duration in seconds, from Vimeo oEmbed
+        long viewCount,             // number of times GET /api/videos/{id} was called
         List<SpeakerResponse> speakers,
         List<VideoResponse> related // only populated on GET /api/videos/{id}
 ) {

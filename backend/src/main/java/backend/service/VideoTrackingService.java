@@ -1,9 +1,14 @@
 package backend.service;
 
+import backend.domain.SearchLog;
 import backend.domain.VideoImpression;
+import backend.repository.SearchLogRepository;
 import backend.repository.VideoImpressionRepository;
 import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.scheduling.annotation.Async;
+
+import java.time.Duration;
+import java.time.Instant;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,20 +22,24 @@ public class VideoTrackingService {
     private static final Logger log = LoggerFactory.getLogger(VideoTrackingService.class);
 
     private final VideoImpressionRepository impressionRepository;
+    private final SearchLogRepository searchLogRepository;
 
-    public VideoTrackingService(VideoImpressionRepository impressionRepository) {
+    public VideoTrackingService(VideoImpressionRepository impressionRepository,
+            SearchLogRepository searchLogRepository) {
         this.impressionRepository = impressionRepository;
+        this.searchLogRepository = searchLogRepository;
     }
 
     /**
      * Asynchronously logs that a set of videos was surfaced to a user.
      *
      * @param videoIds  The list of video IDs that were displayed.
-     * @param endpoint  The identifier for where they were shown (e.g. "list", "search", "trending").
+     * @param endpoint  The identifier for where they were shown (e.g. "list",
+     *                  "search", "trending").
      * @param ipAddress The client IP address (may be null).
      * @param userAgent The client User-Agent header (may be null).
      */
-    @ExecuteOn(TaskExecutors.VIRTUAL)
+    @Async(TaskExecutors.BLOCKING)
     public void trackImpressions(List<String> videoIds, String endpoint, String ipAddress, String userAgent) {
         if (videoIds == null || videoIds.isEmpty()) {
             return;
@@ -45,6 +54,52 @@ public class VideoTrackingService {
             log.debug("Tracked {} impressions for endpoint '{}'", videoIds.size(), endpoint);
         } catch (Exception e) {
             log.error("Failed to track video impressions", e);
+        }
+    }
+
+    /**
+     * Asynchronously logs that a specific video was viewed, with rate-limiting to
+     * prevent
+     * refreshing from artificially boosting the count.
+     */
+    @Async(TaskExecutors.BLOCKING)
+    public void trackDetailImpression(String videoId, Integer lengthMinutes, String ipAddress, String userAgent) {
+        if (videoId == null || videoId.isBlank()) {
+            return;
+        }
+
+        try {
+            // Default to 120 minutes if length is unknown
+            int durationMinutes = (lengthMinutes != null && lengthMinutes > 0) ? lengthMinutes : 120;
+            Instant since = Instant.now().minus(Duration.ofMinutes(durationMinutes));
+
+            boolean alreadyTracked = impressionRepository
+                    .existsByVideoIdAndEndpointAndIpAddressAndUserAgentAndCreatedAtGreaterThan(
+                            videoId, "detail", ipAddress, userAgent, since);
+
+            if (alreadyTracked) {
+                log.debug("Skipping tracking for video '{}' from IP '{}' (already tracked within last {} mins)",
+                        videoId, ipAddress, durationMinutes);
+                return;
+            }
+
+            impressionRepository.save(new VideoImpression(videoId, "detail", ipAddress, userAgent));
+            log.debug("Tracked new detail impression for video '{}'", videoId);
+        } catch (Exception e) {
+            log.error("Failed to track detail impression for video '{}'", videoId, e);
+        }
+    }
+
+    /**
+     * Asynchronously logs a search query.
+     */
+    @Async(TaskExecutors.BLOCKING)
+    public void trackSearch(String query, int resultsCount, String ipAddress, String userAgent) {
+        try {
+            searchLogRepository.save(new SearchLog(query, resultsCount, ipAddress, userAgent, java.time.Instant.now()));
+            log.debug("Tracked search query '{}' with {} results", query, resultsCount);
+        } catch (Exception e) {
+            log.error("Failed to track search query", e);
         }
     }
 }

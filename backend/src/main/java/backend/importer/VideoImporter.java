@@ -10,16 +10,17 @@ import backend.domain.VideoSpeaker;
 import backend.importer.dto.ConferenceRef;
 import backend.importer.dto.SleepingPillSession;
 import backend.importer.dto.SleepingPillSpeaker;
+import backend.importer.dto.VimeoOembedResponse;
 import backend.repository.ConferenceRepository;
 import backend.repository.SpeakerRepository;
 import backend.repository.VideoRepository;
 import backend.repository.VideoSpeakerRepository;
 import backend.util.VimeoUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import jakarta.transaction.Transactional;
-import io.micronaut.transaction.annotation.ReadOnly;
 
 import java.time.Instant;
 import java.util.*;
@@ -31,16 +32,25 @@ public class VideoImporter {
     private static final Logger log = LoggerFactory.getLogger(VideoImporter.class);
 
     private final SleepingPillClient sleepingPillClient;
+    private final VimeoClient vimeoClient;
+    private final ObjectMapper objectMapper;
     private final AiEnrichmentService aiEnrichmentService;
     private final ConferenceRepository conferenceRepository;
     private final SpeakerRepository speakerRepository;
     private final VideoRepository videoRepository;
     private final VideoSpeakerRepository videoSpeakerRepository;
 
-    public VideoImporter(SleepingPillClient sleepingPillClient, AiEnrichmentService aiEnrichmentService,
-            ConferenceRepository conferenceRepository, SpeakerRepository speakerRepository,
-            VideoRepository videoRepository, VideoSpeakerRepository videoSpeakerRepository) {
+    public VideoImporter(SleepingPillClient sleepingPillClient,
+                         VimeoClient vimeoClient,
+                         ObjectMapper objectMapper,
+                         AiEnrichmentService aiEnrichmentService,
+                         ConferenceRepository conferenceRepository,
+                         SpeakerRepository speakerRepository,
+                         VideoRepository videoRepository,
+                         VideoSpeakerRepository videoSpeakerRepository) {
         this.sleepingPillClient = sleepingPillClient;
+        this.vimeoClient = vimeoClient;
+        this.objectMapper = objectMapper;
         this.aiEnrichmentService = aiEnrichmentService;
         this.conferenceRepository = conferenceRepository;
         this.speakerRepository = speakerRepository;
@@ -51,24 +61,18 @@ public class VideoImporter {
     /**
      * Full import run. Should be triggered only via GET /api/import.
      *
-     * <ol>
-     * <li>Fetch all conferences, rank by year, compute base_score.</li>
-     * <li>For each conference: skip if already completed. Otherwise, in a new
-     * transaction, fetch sessions, enrich, UPSERT, rebuild vectors, update
-     * view_boost,
-     * and mark completed.</li>
-     * </ol>
-     *
+     * @param force When true, re-imports all conferences regardless of completed flag,
+     *              re-runs AI enrichment, and re-fetches Vimeo oEmbed data.
      * @return summary map with counts per conference
      */
-    public Map<String, Integer> importAll() {
-        log.info("VideoImporter: starting smart import");
+    public Map<String, Integer> importAll(boolean force, Integer importYearOnly) {
+        log.info("VideoImporter: starting import (force={})", force);
         Map<String, Integer> summary = new LinkedHashMap<>();
 
         List<ConferenceRef> conferences = sleepingPillClient.getAllConferences().conferences();
         List<ConferenceRef> sorted = conferences.stream()
                 .sorted(Comparator.comparingInt(c -> extractYear(c.name())))
-                .collect(Collectors.toList());
+                .toList();
         int total = sorted.size();
 
         for (int i = 0; i < total; i++) {
@@ -77,37 +81,30 @@ public class VideoImporter {
             int baseScore = Math.max(0, 150 - (rank - 1) * 10);
             int year = extractYear(confRef.name());
 
-            // Load from DB to check if already completed
+            if(importYearOnly != null && !Objects.equals(importYearOnly, year)) continue;
+
             Optional<Conference> optConf = conferenceRepository.findById(confRef.id());
-            if (optConf.isPresent() && Boolean.TRUE.equals(optConf.get().getCompleted())) {
+            if (!force && optConf.isPresent() && Boolean.TRUE.equals(optConf.get().getCompleted())) {
                 log.info("VideoImporter: skipping {}, already fully imported", confRef.slug());
                 summary.put(confRef.slug(), 0);
                 continue;
             }
 
             try {
-                // Call the transactional sub-method via self-injection or direct call.
-                // In Micronaut, direct internal calls bypass AOP. To get REQUIRES_NEW
-                // accurately without self-injection, we just use @Transactional normally
-                // if we inject the proxy, but here we can just rely on the controller call
-                // not being transactional to start with.
-                int count = importConference(confRef, year, baseScore);
+                int count = importConference(confRef, year, baseScore, force);
                 summary.put(confRef.slug(), count);
             } catch (Exception e) {
-                log.error("Failed to atomic-import conference {}: {}", confRef.slug(), e.getMessage());
+                log.error("Failed to import conference {}: {}", confRef.slug(), e.getMessage());
             }
         }
 
-        log.info("VideoImporter: smart import complete. Summary: {}", summary);
+        log.info("VideoImporter: import complete. Summary: {}", summary);
         return summary;
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    protected int importConference(ConferenceRef confRef, int year, int baseScore) {
-        // 1. Ensure conference exists
+    protected int importConference(ConferenceRef confRef, int year, int baseScore, boolean force) {
         upsertConference(confRef.id(), confRef.slug(), confRef.name(), year);
-
-        // 2. Fetch sessions
         List<SleepingPillSession> sessions;
         try {
             sessions = sleepingPillClient.getSessions(confRef.slug()).sessions();
@@ -116,7 +113,6 @@ public class VideoImporter {
             throw new RuntimeException("Failed to fetch sessions", e);
         }
 
-        // 3. Import each video
         int count = 0;
         for (SleepingPillSession session : sessions) {
             String vimeoId = VimeoUtils.extractId(session.video());
@@ -124,40 +120,52 @@ public class VideoImporter {
                 continue;
 
             try {
-                importVideo(session, vimeoId, confRef.id(), baseScore);
+                importVideo(session, vimeoId, confRef.id(), baseScore, force);
                 count++;
             } catch (Exception e) {
                 log.error("Failed to import video {}: {}", session.id(), e.getMessage());
             }
         }
 
-        // 4. Rebuild indexes & view boosts specific to this conference
         videoRepository.rebuildSearchVectorEn(confRef.id());
         videoRepository.rebuildSearchVectorNo(confRef.id());
         videoRepository.updateViewBoosts();
-
-        // 5. Mark conference completed
         markConferenceCompleted(confRef.id());
 
-        log.info("VideoImporter: {} → {} videos successfully imported and committed", confRef.slug(), count);
+        log.info("VideoImporter: {} → {} videos imported (force={})", confRef.slug(), count, force);
         return count;
     }
 
-    private void importVideo(SleepingPillSession session, String vimeoId, String confId, int baseScore) {
+    private void importVideo(SleepingPillSession session, String vimeoId, String confId, int baseScore, boolean force) {
         String videoId = session.id();
         List<String> keywords = parseKeywords(session.suggestedKeywords());
 
         Optional<Video> existingOpt = videoRepository.findById(videoId);
         boolean alreadyEnriched = existingOpt.map(v -> v.getTitleEn() != null).orElse(false);
 
+        // --- AI enrichment ---
         Optional<AiEnrichmentResponse> enriched = Optional.empty();
-        if (!alreadyEnriched) {
+        if (!alreadyEnriched || force) {
             AiEnrichmentRequest req = new AiEnrichmentRequest(
                     session.title(), session.abstractText(), session.intendedAudience(),
                     session.suggestedKeywords(), speakerBios(session));
             enriched = aiEnrichmentService.enrich(req);
         }
 
+        // --- Vimeo oEmbed ---
+        boolean alreadyHasVimeoData = existingOpt.map(v -> v.getThumbnailUrl() != null).orElse(false);
+        String vimeoRawJson = null;
+        VimeoOembedResponse vimeoData = null;
+        if (!alreadyHasVimeoData || force) {
+            try {
+                vimeoRawJson = vimeoClient.getOembed("https://vimeo.com/" + vimeoId);
+                vimeoData = objectMapper.readValue(vimeoRawJson, VimeoOembedResponse.class);
+            } catch (Exception e) {
+                log.warn("Failed to fetch Vimeo oEmbed for vimeoId={}: {}", vimeoId, e.getMessage());
+            }
+        }
+
+        // --- Build entity ---
         Video video = existingOpt.orElseGet(Video::new);
         video.setId(videoId);
         video.setConferenceId(confId);
@@ -202,10 +210,19 @@ public class VideoImporter {
             }
         }
 
+        if (vimeoData != null) {
+            video.setThumbnailUrl(vimeoData.thumbnailUrl());
+            video.setVimeoDuration(vimeoData.duration());
+        }
+
         if (existingOpt.isPresent()) {
             videoRepository.update(video);
         } else {
             videoRepository.save(video);
+        }
+
+        if (vimeoRawJson != null) {
+            videoRepository.updateVimeoOembed(videoId, vimeoRawJson);
         }
 
         List<SleepingPillSpeaker> speakers = session.speakers() != null ? session.speakers() : List.of();
@@ -224,8 +241,6 @@ public class VideoImporter {
             Conference c = opt.get();
             c.setName(name);
             c.setYear(year);
-            // Don't modify completed here, allow it to remain true if it was true, or false
-            // if it was false
             conferenceRepository.update(c);
         } else {
             Conference c = new Conference(id, slug, name, year);

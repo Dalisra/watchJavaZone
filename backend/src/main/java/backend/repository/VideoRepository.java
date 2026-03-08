@@ -69,4 +69,7 @@ public interface VideoRepository extends CrudRepository<Video, String> {
 
     @Query("UPDATE videos SET view_boost = COALESCE((SELECT LEAST(viewers_last_7d * 2, 100) FROM video_view_stats WHERE video_id = videos.id), 0)")
     void updateViewBoosts();
+
+    @Query("UPDATE videos SET vimeo_oembed = :oembedJson::jsonb WHERE id = :id")
+    void updateVimeoOembed(String id, String oembedJson);
 }
