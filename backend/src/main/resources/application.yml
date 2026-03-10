@@ -4,6 +4,12 @@ micronaut:
   http:
     client:
       read-timeout: 300s
+  router:
+    static-resources:
+      default:
+        enabled: true
+        mapping: /**
+        paths: classpath:public
 
 datasources:
   default:
