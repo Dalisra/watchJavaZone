@@ -1,6 +1,9 @@
 micronaut:
   application:
     name: backend
+  http:
+    client:
+      read-timeout: 300s
 
 datasources:
   default:
@@ -25,4 +28,4 @@ google:
     key: ${GOOGLE_API_KEY:}
 
 gemini:
-  model: gemini-3.1-flash
+  model: gemini-2.5-flash

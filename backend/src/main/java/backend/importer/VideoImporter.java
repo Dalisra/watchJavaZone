@@ -41,13 +41,13 @@ public class VideoImporter {
     private final VideoSpeakerRepository videoSpeakerRepository;
 
     public VideoImporter(SleepingPillClient sleepingPillClient,
-                         VimeoClient vimeoClient,
-                         ObjectMapper objectMapper,
-                         AiEnrichmentService aiEnrichmentService,
-                         ConferenceRepository conferenceRepository,
-                         SpeakerRepository speakerRepository,
-                         VideoRepository videoRepository,
-                         VideoSpeakerRepository videoSpeakerRepository) {
+            VimeoClient vimeoClient,
+            ObjectMapper objectMapper,
+            AiEnrichmentService aiEnrichmentService,
+            ConferenceRepository conferenceRepository,
+            SpeakerRepository speakerRepository,
+            VideoRepository videoRepository,
+            VideoSpeakerRepository videoSpeakerRepository) {
         this.sleepingPillClient = sleepingPillClient;
         this.vimeoClient = vimeoClient;
         this.objectMapper = objectMapper;
@@ -61,7 +61,8 @@ public class VideoImporter {
     /**
      * Full import run. Should be triggered only via GET /api/import.
      *
-     * @param force When true, re-imports all conferences regardless of completed flag,
+     * @param force When true, re-imports all conferences regardless of completed
+     *              flag,
      *              re-runs AI enrichment, and re-fetches Vimeo oEmbed data.
      * @return summary map with counts per conference
      */
@@ -81,7 +82,8 @@ public class VideoImporter {
             int baseScore = Math.max(0, 150 - (rank - 1) * 10);
             int year = extractYear(confRef.name());
 
-            if(importYearOnly != null && !Objects.equals(importYearOnly, year)) continue;
+            if (importYearOnly != null && !Objects.equals(importYearOnly, year))
+                continue;
 
             Optional<Conference> optConf = conferenceRepository.findById(confRef.id());
             if (!force && optConf.isPresent() && Boolean.TRUE.equals(optConf.get().getCompleted())) {
@@ -158,8 +160,8 @@ public class VideoImporter {
         VimeoOembedResponse vimeoData = null;
         if (!alreadyHasVimeoData || force) {
             try {
-                vimeoRawJson = vimeoClient.getOembed("https://vimeo.com/" + vimeoId);
-                vimeoData = objectMapper.readValue(vimeoRawJson, VimeoOembedResponse.class);
+                vimeoData = vimeoClient.getOembed("https://vimeo.com/" + vimeoId);
+                vimeoRawJson = objectMapper.writeValueAsString(vimeoData);
             } catch (Exception e) {
                 log.warn("Failed to fetch Vimeo oEmbed for vimeoId={}: {}", vimeoId, e.getMessage());
             }

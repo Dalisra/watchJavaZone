@@ -11,9 +11,6 @@ public class Speaker {
     private String name;
     private Instant createdAt;
 
-    public Speaker() {
-    }
-
     public Speaker(String id, String name) {
         this.id = id;
         this.name = name;

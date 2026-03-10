@@ -56,9 +56,11 @@ public class AiEnrichmentService {
                 "contents", List.of(
                     Map.of("parts", List.of(Map.of("text", prompt)))),
                 "generationConfig", Map.of("responseMimeType", "application/json"));
-            String url = "/v1beta/models/" + model + ":generateContent?key=" + apiKey;
+            String url = "/v1beta/models/" + model + ":generateContent";
             String responseJson = httpClient.toBlocking().retrieve(
-                HttpRequest.POST(url, body).contentType(MediaType.APPLICATION_JSON_TYPE),
+                HttpRequest.POST(url, body)
+                    .contentType(MediaType.APPLICATION_JSON_TYPE)
+                    .header("x-goog-api-key", apiKey),
                 String.class);
             return Optional.of(parseGeminiResponse(responseJson));
         } catch(Exception e) {

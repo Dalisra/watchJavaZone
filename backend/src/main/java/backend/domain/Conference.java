@@ -12,9 +12,6 @@ public class Conference {
     private Integer year;
     private Boolean completed;
 
-    public Conference() {
-    }
-
     public Conference(String id, String slug, String name, Integer year) {
         this.id = id;
         this.slug = slug;

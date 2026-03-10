@@ -11,9 +11,6 @@ public class VideoSpeaker {
     private String speakerId;
     private String bio;
 
-    public VideoSpeaker() {
-    }
-
     public VideoSpeaker(String videoId, String speakerId, String bio) {
         this.videoId = videoId;
         this.speakerId = speakerId;
